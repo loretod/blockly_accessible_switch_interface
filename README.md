@@ -1,5 +1,5 @@
 # Blockly Keyboard Shortcuts Switch Interface
-
+![microbit makecode editor with image of a yellow 3d printed switch connected to the switch interface. The interface is showing the letter e on its screen.](/Img/Blockly%20Switch%20Interface%20in%20Makecode.jpg)
 ## What It Is?
 A DIY programmable switch interface that allows users with limited mobility to control computers using one or two adaptive switches. Built with an Adafruit Feather ESP32-S3 Rev TFT board, it features a built-in color display, two 3.5mm switch ports, and USB keyboard emulation of the Blockly keyboard shortcut commands. The device cycles through customizable keyboard commands, making computer access possible for users who cannot operate standard keyboards.
 
