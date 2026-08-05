@@ -4,9 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Visual &amp; Auditory Scanning Display — Blockly Accessible Switch Interface</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖲️</text></svg>">
   <meta name="description" content="Browser companion app that mirrors the BASI device display with TTS and audio feedback.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500&family=Syne:wght@400;600;700;800&family=Fira+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="basi-shared.css">
   <style>
     /* ── APP-LEVEL OVERRIDES (dark theme for the interactive tool) ── */
@@ -40,7 +42,7 @@
     body {
       background: var(--app-bg);
       color: var(--app-text);
-      font-family: 'DM Mono', var(--ff-mono);
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -82,7 +84,7 @@
     }
 
     .inner-nav-title {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: 1.6rem;
       letter-spacing: 0.12em;
       color: var(--app-accent);
@@ -92,7 +94,7 @@
     .nav-tabs { display: flex; gap: 4px; }
 
     .tab-btn {
-      font-family: 'DM Mono', monospace;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: var(--app-text-sm);
       font-weight: 500;
       letter-spacing: 0.08em;
@@ -131,7 +133,7 @@
     }
 
     .connect-btn {
-      font-family: 'DM Mono', monospace;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: var(--app-text-sm);
       font-weight: 500;
       letter-spacing: 0.1em;
@@ -150,7 +152,7 @@
     .connect-btn.disconnect:hover { background: var(--app-red); color: #fff; }
 
     .tts-btn {
-      font-family: 'DM Mono', monospace;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: var(--app-text-sm);
       font-weight: 500;
       letter-spacing: 0.1em;
@@ -212,7 +214,7 @@
     }
 
     .mode-value {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: 1.1rem;
       letter-spacing: 0.1em;
       color: var(--app-accent);
@@ -268,7 +270,7 @@
       display: none;
       align-items: center;
       gap: 6px;
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
       font-size: 1rem;
       letter-spacing: 0.12em;
       color: var(--app-blue);
@@ -304,7 +306,7 @@
     }
 
     .key-symbol {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: clamp(4rem, 14vw, 10rem);
       line-height: 0.9;
       color: var(--app-text);
@@ -330,7 +332,7 @@
       position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
       font-size: clamp(2rem, 6vw, 4rem);
       letter-spacing: 0.2em;
       color: var(--app-green);
@@ -356,7 +358,7 @@
       background: transparent;
       border: none;
       color: var(--app-dim);
-      font-family: 'DM Mono', monospace;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: var(--app-text-xs);
       letter-spacing: 0.15em;
       text-transform: uppercase;
@@ -415,7 +417,7 @@
       background: transparent;
       border: none;
       color: var(--app-dim);
-      font-family: 'DM Mono', monospace;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: var(--app-text-xs);
       letter-spacing: 0.15em;
       text-transform: uppercase;
@@ -449,7 +451,7 @@
       background: #080808;
       border: 1px solid var(--app-border);
       color: var(--app-green);
-      font-family: 'DM Mono', monospace;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: var(--app-text-sm);
       padding: 8px 12px;
       resize: none;
@@ -462,7 +464,7 @@
     .settings-actions { display: flex; gap: 8px; margin-top: 8px; }
 
     .apply-btn {
-      font-family: 'DM Mono', monospace;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: var(--app-text-xs);
       letter-spacing: 0.1em;
       text-transform: uppercase;
@@ -478,7 +480,7 @@
     .apply-btn:hover { background: var(--app-accent); color: #000; }
 
     .reset-btn {
-      font-family: 'DM Mono', monospace;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: var(--app-text-xs);
       letter-spacing: 0.1em;
       text-transform: uppercase;
@@ -539,7 +541,7 @@
     }
 
     .last-key-symbol {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: clamp(5rem, 18vw, 14rem);
       line-height: 0.85;
       color: var(--app-text);
@@ -597,7 +599,7 @@
       align-items: center;
     }
     .clear-btn {
-      font-family: 'DM Mono', monospace;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: var(--app-text-xs);
       letter-spacing: 0.1em;
       text-transform: uppercase;
@@ -618,7 +620,7 @@
       background: transparent;
       border: none;
       color: var(--app-text);
-      font-family: 'DM Mono', monospace;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: 1.5rem;
       letter-spacing: 0.05em;
       padding: 12px 18px;
@@ -629,7 +631,7 @@
 
     /* Placeholder glyphs */
     .placeholder-glyph {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: clamp(4rem, 14vw, 10rem);
       line-height: 0.9;
       color: var(--app-border-hi);
@@ -770,7 +772,10 @@
         <div class="settings-content">
           <p class="settings-note">
             One entry per line: <code>name | SYMBOL | Label</code>.
-            Must match the KEYCODES order in code.py exactly.
+            Must match the KEYCODES order in code.py exactly. This simplified
+            list is flat — it doesn't represent submenu nesting, so while
+            connected, submenu child items will show a fallback glyph here
+            until you add matching top-level entries for them.
           </p>
           <textarea id="keycodes-editor"
                     aria-label="Keycode list editor — one entry per line in format: name | SYMBOL | Label"></textarea>
@@ -1087,6 +1092,12 @@ function parseLine(raw) {
 
   m = line.match(/EVENT: Sent: (.+)/);
   if (m) { setScanningState(false); flashSent(); playBeep(); addLog(line, 'log-event'); return; }
+
+  m = line.match(/EVENT: Enter submenu -> (.+)/);
+  if (m) { setScanningState(false); addLog(line, 'log-event'); return; }
+
+  if (/EVENT: Auto-exit submenu/.test(line))   { addLog(line, 'log-event'); return; }
+  if (/EVENT: Back -> parent menu/.test(line)) { addLog(line, 'log-event'); return; }
 
   if (/Short press/.test(line) && /select/.test(line)) { setScanningState(false); addLog(line, 'log-event'); return; }
 

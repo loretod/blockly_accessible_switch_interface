@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Build Instructions — Blockly Accessible Switch Interface</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖲️</text></svg>">
 <meta name="description" content="Step-by-step build instructions for the Blockly Accessible Switch Interface.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Fira+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="basi-shared.css">
 <style>
 /* ── LAYOUT ── */
@@ -273,144 +273,30 @@
     <nav class="step-nav" aria-label="Build steps">
       <p class="step-nav-title">Steps</p>
       <ol class="step-nav-list" role="list">
-        <li><a href="#step-parts"><span class="step-num" aria-hidden="true">1</span>Parts list</a></li>
-        <li><a href="#step-wiring"><span class="step-num" aria-hidden="true">2</span>Wiring &amp; pins</a></li>
-        <li><a href="#step-circuitpython"><span class="step-num" aria-hidden="true">3</span>CircuitPython</a></li>
-        <li><a href="#step-libraries"><span class="step-num" aria-hidden="true">4</span>Libraries</a></li>
-        <li><a href="#step-firmware"><span class="step-num" aria-hidden="true">5</span>Install firmware</a></li>
-        <li><a href="#step-config"><span class="step-num" aria-hidden="true">6</span>Configuration <span style="font-size: var(--text-xs); color: var(--ink3);">(optional)</span></a></li>
-        <li><a href="#step-boot"><span class="step-num" aria-hidden="true">7</span>First boot</a></li>
-        <li><a href="#step-modes"><span class="step-num" aria-hidden="true">8</span>Switch modes</a></li>
+        <li><a href="#step-build"><span class="step-num" aria-hidden="true">1</span>Build Instructions</a></li>
+        <li><a href="#step-config"><span class="step-num" aria-hidden="true">2</span>Configuration <span style="font-size: var(--text-xs); color: var(--ink3);">(optional)</span></a></li>
+        <li><a href="#step-boot"><span class="step-num" aria-hidden="true">3</span>First boot</a></li>
+        <li><a href="#step-modes"><span class="step-num" aria-hidden="true">4</span>Switch modes</a></li>
         <li><a href="#step-mode0"><span class="step-num" aria-hidden="true">↳</span>Mode 0 — Direct</a></li>
-        <li><a href="#step-display"><span class="step-num" aria-hidden="true">9</span>Display <span style="font-size: var(--text-xs); color: var(--ink3);">(optional)</span></a></li>
+        <li><a href="#step-display"><span class="step-num" aria-hidden="true">5</span>Web Display <span style="font-size: var(--text-xs); color: var(--ink3);">(optional)</span></a></li>
       </ol>
     </nav>
 
     <div class="build-content">
 
-      <section class="build-step" id="step-parts" aria-labelledby="heading-parts">
+      <section class="build-step" id="step-build" aria-labelledby="heading-build">
         <div class="step-header">
           <span class="step-counter">Step 01</span>
-          <h2 class="step-title" id="heading-parts">Parts List</h2>
+          <h2 class="step-title" id="heading-build">Build Instructions</h2>
         </div>
         <div class="step-body">
-          <p>Gather the following components. All parts are available from Adafruit, Digi-Key, or similar suppliers.</p>
-          <table class="parts-table" aria-label="Parts list">
-            <thead><tr><th scope="col">Component</th><th scope="col">Details</th><th scope="col">Notes</th></tr></thead>
-            <tbody>
-              <tr><td>Adafruit Feather ESP32-S3 Rev TFT</td><td><a href="https://www.adafruit.com/product/5691" target="_blank">#5691</a></td><td>Built-in 240×135 TFT display</td></tr>
-              <tr><td>3.5mm Stereo Jack Breakout (×2)</td><td>TRRS or TRS, panel-mount</td><td>For A1 (nav) and A2 (select)</td></tr>
-              <tr><td>Accessibility switches (×1 or ×2)</td><td>Any 3.5mm momentary assistive switch</td><td>Wired to GND, normally open</td></tr>
-              <tr><td>Small enclosure</td><td>Any project box ≥ 80×50mm or <a href="https://www.printables.com/model/1533483-blockly-switch-interface" target="_blank">3D printed files</a></td><td>3D print or off-the-shelf</td></tr>
-              <tr><td>USB-C cable</td><td>Data-capable</td><td>For firmware install and USB HID</td></tr>
-            </tbody>
-          </table>
-          <div class="callout info" role="note">
-            <span class="callout-icon" aria-hidden="true">ℹ</span>
-            <span>The Feather has onboard D0, D1, and D2 buttons for mode selection — no extra buttons needed.</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="build-step" id="step-wiring" aria-labelledby="heading-wiring">
-        <div class="step-header">
-          <span class="step-counter">Step 02</span>
-          <h2 class="step-title" id="heading-wiring">Wiring &amp; Pin Connections</h2>
-        </div>
-        <div class="step-body">
-          <p>Both switch inputs use internal pull-up resistors — a pressed switch reads <code>LOW</code> (False).</p>
-          <table class="pin-table" aria-label="Pin connections">
-            <thead><tr><th scope="col">Pin</th><th scope="col">Role</th><th scope="col">Wiring</th><th scope="col">Logic</th></tr></thead>
-            <tbody>
-              <tr><td><span class="pin-tag gpio">A1</span></td><td>Navigate switch</td><td>Tip → A1, Sleeve → GND</td><td>Active LOW (Pull.UP)</td></tr>
-              <tr><td><span class="pin-tag gpio">A2</span></td><td>Select / Single switch</td><td>Tip → A2, Sleeve → GND</td><td>Active LOW (Pull.UP)</td></tr>
-              <tr><td><span class="pin-tag gnd">GND</span></td><td>Ground reference</td><td>Sleeve of both jacks</td><td>–</td></tr>
-              <tr><td><span class="pin-tag gpio">D0</span></td><td>Onboard — Direct Switch Interface</td><td>Built-in button</td><td>Active LOW (Pull.UP)</td></tr>
-              <tr><td><span class="pin-tag gpio">D1</span></td><td>Onboard — single-switch mode</td><td>Built-in button</td><td>Active HIGH (Pull.DOWN)</td></tr>
-              <tr><td><span class="pin-tag gpio">D2</span></td><td>Onboard — two-switch mode</td><td>Built-in button</td><td>Active HIGH (Pull.DOWN)</td></tr>
-            </tbody>
-          </table>
-          <div class="callout warn" role="note">
-            <span class="callout-icon" aria-hidden="true">⚠</span>
-            <span>Do not apply voltage to A1 or A2 — digital input only. Use normally-open switches wired to GND.</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="build-step" id="step-circuitpython" aria-labelledby="heading-cp">
-        <div class="step-header">
-          <span class="step-counter">Step 03</span>
-          <h2 class="step-title" id="heading-cp">Install CircuitPython</h2>
-        </div>
-        <div class="step-body">
-          <div class="callout success" role="note">
-            <span class="callout-icon" aria-hidden="true">✓</span>
-            <span>Your board may require installation of the TinyUF2 bootloader. Follow the instructions on the <a href="https://learn.adafruit.com/esp32-s3-reverse-tft-feather/update-tinyuf2-bootloader-for-circuitpython-10-4mb-boards-only" target="_blank" rel="noopener">Adafruit Learn Guide</a>.</span>
-          </div>
-          <p>The firmware requires CircuitPython 10 or later.</p>
-          <ol class="install-steps" aria-label="CircuitPython installation steps">
-            <li><strong>Download</strong> the latest <code>.UF2</code> for Feather ESP32-S3 Rev TFT from <a href="https://circuitpython.org/board/adafruit_feather_esp32s3_reverse_tft/" target="_blank" rel="noopener">circuitpython.org</a>.</li>
-            <li><strong>Enter bootloader</strong> by clicking the RESET button— the drive <code>FTHRS3BOOT</code> appears.</li>
-            <li><strong>Drag and drop</strong> the <code>.UF2</code> file onto <code>FTHRS3BOOT</code>. The board reboots automatically.</li>
-            <li>A drive named <strong><code>CIRCUITPY</code></strong> appears — you're ready to copy files.</li>
-          </ol>
-        </div>
-      </section>
-
-      <section class="build-step" id="step-libraries" aria-labelledby="heading-libs">
-        <div class="step-header">
-          <span class="step-counter">Step 04</span>
-          <h2 class="step-title" id="heading-libs">Install Libraries</h2>
-        </div>
-        <div class="step-body">
-          <p>Copy these from the <a href="https://circuitpython.org/libraries" target="_blank" rel="noopener">CircuitPython Library Bundle</a> into the <code>lib/</code> folder on <code>CIRCUITPY</code>:</p>
-          <ol class="install-steps" aria-label="Required libraries">
-            <li><strong><code>adafruit_st7789</code></strong> — TFT display driver</li>
-            <li><strong><code>adafruit_display_text</code></strong> — on-screen labels</li>
-            <li><strong><code>adafruit_hid</code></strong> — USB HID keyboard emulation</li>
-          </ol>
-          <div class="code-block" role="region" aria-label="Required file structure on CIRCUITPY drive">CIRCUITPY/
-├── code.py
-├── config.py          <span class="code-comment"># optional — generated by configurator</span>
-└── lib/
-    ├── adafruit_st7789.mpy
-    ├── adafruit_display_text/
-    └── adafruit_hid/</div>
-        </div>
-      </section>
-
-      <section class="build-step" id="step-firmware" aria-labelledby="heading-firmware">
-        <div class="step-header">
-          <span class="step-counter">Step 05</span>
-          <h2 class="step-title" id="heading-firmware">Install Firmware Files</h2>
-        </div>
-        <div class="step-body">
-          <p>Download <code>code.py</code> from the <a href="https://github.com/loretod/blockly_accessible_switch_interface" target="_blank" rel="noopener">GitHub repository</a> and copy it to the root of <code>CIRCUITPY</code>. It runs automatically on every boot.</p>
-
-          <div id="video-walkthrough" style="margin: 1.5rem 0;">
-            <p style="margin-bottom: 0.75rem; font-weight: 600;">Video walkthrough</p>
-            <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border: 2px solid var(--ink); border-radius: 4px;">
-              <iframe
-                src="https://www.youtube-nocookie.com/embed/pL-6bodNu7Q?start=31"
-                title="Build walkthrough video"
-                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen
-                loading="lazy">
-              </iframe>
-            </div>
-          </div>
-
-          <div class="callout info" role="note">
-            <span class="callout-icon" aria-hidden="true">ℹ</span>
-            <span>Do not rename <code>code.py</code> — CircuitPython runs this filename on boot. Place <code>config.py</code> alongside it to override defaults (see Step 6).</span>
-          </div>
+          <iframe src="https://docs.google.com/presentation/d/e/2PACX-1vRLB-ssaZ2lQKfzIOw7MU3ilnS_D7XAcPhWdcv4CS0tsQ7e1NFE6QulaQyW4kVeWO49AM5KeUvafYBN/pubembed?start=false&loop=false&delayms=3000" frameborder="0" width="960" height="569" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>
         </div>
       </section>
 
       <section class="build-step" id="step-config" aria-labelledby="heading-config">
         <div class="step-header">
-          <span class="step-counter">Step 06</span>
+          <span class="step-counter">Step 02</span>
           <h2 class="step-title" id="heading-config">Configuration (optional)</h2>
         </div>
         <div class="step-body">
@@ -421,11 +307,6 @@
             <li>Click <strong>Generate config.py</strong> then <strong>Download config.py</strong>.</li>
             <li>Copy the file to the root of <code>CIRCUITPY</code> — the device reloads automatically.</li>
           </ol>
-          <p>The import block in <code>code.py</code> (placed after KEYCODES / KEY_SYMBOLS):</p>
-          <div class="code-block" role="region" aria-label="Config import code in code.py"><span class="code-kw">try</span>:
-    <span class="code-kw">from</span> config <span class="code-kw">import</span> *
-<span class="code-kw">except</span> ImportError:
-    <span class="code-kw">pass</span>  <span class="code-comment"># config.py missing — use defaults above</span></div>
         </div>
           <div style="margin-top: 1rem; position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border: 2px solid var(--ink); border-radius: 4px;">
             <iframe
@@ -445,7 +326,7 @@
 
       <section class="build-step" id="step-boot" aria-labelledby="heading-boot">
         <div class="step-header">
-          <span class="step-counter">Step 07</span>
+          <span class="step-counter">Step 03</span>
           <h2 class="step-title" id="heading-boot">First Boot</h2>
         </div>
         <div class="step-body">
@@ -465,7 +346,7 @@
 
       <section class="build-step" id="step-modes" aria-labelledby="heading-modes">
         <div class="step-header">
-          <span class="step-counter">Step 08</span>
+          <span class="step-counter">Step 04</span>
           <h2 class="step-title" id="heading-modes">Switch Modes Reference</h2>
         </div>
         <div class="step-body">
@@ -575,7 +456,7 @@
 
       <section class="build-step" id="step-display" aria-labelledby="heading-display">
         <div class="step-header">
-          <span class="step-counter">Step 09</span>
+          <span class="step-counter">Step 05</span>
           <h2 class="step-title" id="heading-display">Display <span style="font-size: var(--text-base); font-weight: 400; color: var(--ink3);">(optional)</span></h2>
         </div>
         <div class="step-body">

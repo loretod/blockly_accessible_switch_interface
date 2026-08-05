@@ -10,8 +10,8 @@ EXTERNAL SWITCHES (3.5mm jacks, wired to GND, Pull.UP active LOW):
 
 ONBOARD BUTTONS / EXTERNAL SWITCHES (mode selection):
   D0 (onboard)             → Direct Switch Mode (Mode 0)
-  D1 (onboard)             → Enter Single-Switch Scanning Mode
-  D2 (onboard)             → Enter Two-Switch Mode
+  D1 (onboard) or A2       → Enter Single-Switch Scanning Mode
+  D2 (onboard) or A1       → Enter Two-Switch Mode
 
   EXTERNAL SWITCHES at the mode-select screen:
     Single-click A2 (select) → Single-Switch Scanning Mode
@@ -24,22 +24,34 @@ ONBOARD BUTTONS / EXTERNAL SWITCHES (mode selection):
   A1 TAP    : Send Switch 1 action (default: Enter)
   A2 TAP    : Send Switch 2 action (default: Tab)
   A1/A2 HOLD (≥ SWITCH_HOLD_EXIT_SECS) : Back to Mode Select
+  D0        : Back to Mode Select
   (Customisable via config.py — supports keyboard, mouse & media)
 
 ─── SINGLE-SWITCH MODE ─────────────────────────────────────
   A2 SHORT PRESS  (≤ MAX_SHORT_PRESS_SECS)  : Select & send current item
   A2 HOLD         (≥ HOLD_TO_SCAN_SECS)     : Start auto-scanning
   A2 PRESS during scan                      : Select & send, stop scanning
-  RESET button                              : Back to Mode Select
+  D0                                        : Back to Mode Select
 
 ─── TWO-SWITCH MODE ────────────────────────────────────────
   A1  : Advance to next item
   A2  : Select & send current item
-  RESET button : Back to Mode Select
+  D0  : Back to Mode Select
 
-(To leave Single- or Two-Switch mode, press the onboard RESET button. Mode 0
- can also be left by holding an external switch, since it may be reached by
- double-click without onboard access.)
+(D0 is dual-purpose: at the mode-select screen it jumps straight into
+ Mode 0; from inside ANY active mode it returns to the mode-select screen.)
+
+─── SUBMENUS (Modes 1 & 2 only) ─────────────────────────────
+  Any KEYCODES entry can be a SUBMENU ENTRY POINT (it has a
+  "submenu" list). Selecting it sends its own keycode first
+  (e.g. to open an on-screen menu on the host) — unless "kc"
+  is empty, which marks a pure organisational folder with no
+  keystroke of its own — then the scan/nav list switches to
+  just that entry's child items. If the entry's "auto_exit"
+  is True, picking a child item automatically returns to the
+  parent list afterwards. If False, a synthetic "◂ back" item
+  is added to the child list so several child items can be
+  picked in a row before manually returning.
 """
 
 import time
@@ -57,9 +69,9 @@ import usb_hid
 from adafruit_hid.keyboard import Keyboard
 from adafruit_hid.keycode import Keycode
 
-# Optional mouse / consumer control — imported only if needed
-# These are imported lazily in run_direct_switch_mode() to avoid
-# pulling in unused HID descriptors on minimal builds.
+# Optional mouse / consumer control — only used by Mode 0 (Direct Switch).
+# Imported here (not lazily) so config.py can reference Mouse /
+# ConsumerControlCode directly when defining SWITCH1_ACTION / SWITCH2_ACTION.
 try:
     from adafruit_hid.mouse import Mouse
     _mouse_available = True
@@ -99,9 +111,7 @@ DOUBLE_CLICK_WINDOW = 0.4
 
 # --- External switch hold to exit Mode 0 ---
 # How long (seconds) an external switch (A1 or A2) must be held in Mode 0
-# to return to the mode-select menu. Lets users who reached Mode 0 by
-# double-click exit without needing the onboard buttons.
-# (To exit Single- or Two-Switch mode, press the onboard RESET button.)
+# to return to the mode-select menu.
 SWITCH_HOLD_EXIT_SECS = 1.5
 
 # ─── MODE 0: DIRECT SWITCH ACTIONS ─────────────────────────────────────────
@@ -139,7 +149,6 @@ SWITCH2_SYMBOL = "TAB"     # Short TFT symbol (1-3 ASCII chars)
 # NOTE: the onboard TFT uses terminalio.FONT (a built-in bitmap font) which
 # only renders basic ASCII / Latin-1 characters. Emoji and most symbol glyphs
 # (e.g. ⏎ ⇥ → ▶) will appear blank. Stick to plain letters/numbers/punctuation.
-# To show emoji you would need to load a custom BDF/PCF font with adafruit_bitmap_font.
 
 # ===============================================
 # ===== DISPLAY INITIALIZATION =====
@@ -261,36 +270,162 @@ def get_consumer():
 # ===============================================
 # ===== KEYCODES AND SYMBOL DEFINITIONS =====
 # ===============================================
+#
+# Each entry in KEYCODES is normally a dict:
+#   {
+#       "label":  str             human-readable name (shown in serial log)
+#       "kc":     [Keycode, ...]   keys sent together when selected
+#       "symbol": str              1-4 char glyph shown on the TFT
+#
+#       "submenu": [ ... ]         OPTIONAL. Present only on a SUBMENU ENTRY
+#                                  POINT. A list of child entries (same
+#                                  shape as this one, minus "submenu").
+#       "auto_exit": bool          OPTIONAL, only meaningful alongside
+#                                  "submenu". True = return to the parent
+#                                  list right after a child is picked.
+#                                  False = stay in the submenu (a "◂ back"
+#                                  item is added automatically) so several
+#                                  child items can be picked in a row.
+#   }
+#
+# Legacy format is still accepted for old config.py files: a plain
+# (label, [Keycode, ...]) tuple, with its symbol looked up from the
+# KEY_SYMBOLS dict below. New config.py files generated by the Shortcut
+# Configurator always use the dict format above.
 
 KEYCODES = [
-    ("arrow right", [Keycode.RIGHT_ARROW]),
-    ("arrow down",  [Keycode.DOWN_ARROW]),
-    ("enter",       [Keycode.ENTER]),
-    ("arrow left",  [Keycode.LEFT_ARROW]),
-    ("arrow up",    [Keycode.UP_ARROW]),
-    ("delete",      [Keycode.DELETE]),
-    ("w",           [Keycode.W]),
-    ("t",           [Keycode.T]),
-    ("m",           [Keycode.M]),
+    {"label": "tab",         "kc": [Keycode.TAB],         "symbol": ">"},
+    {"label": "arrow right", "kc": [Keycode.RIGHT_ARROW], "symbol": "R"},
+    {"label": "arrow down",  "kc": [Keycode.DOWN_ARROW],  "symbol": "D"},
+    {"label": "enter",       "kc": [Keycode.ENTER],       "symbol": "e"},
+    {"label": "arrow left",  "kc": [Keycode.LEFT_ARROW],  "symbol": "L"},
+    {"label": "arrow up",    "kc": [Keycode.UP_ARROW],    "symbol": "U"},
+    {"label": "delete",      "kc": [Keycode.DELETE],      "symbol": "x"},
+    {"label": "escape",      "kc": [Keycode.ESCAPE],      "symbol": "ESC"},
+    {"label": "w",           "kc": [Keycode.W],           "symbol": "W"},
+    {"label": "t",           "kc": [Keycode.T],           "symbol": "T"},
+    {
+        "label": "ctrl+b", "kc": [Keycode.LEFT_CONTROL, Keycode.B], "symbol": "B",
+        "auto_exit": True,
+        "submenu": [
+            {"label": "0", "kc": [Keycode.ZERO],  "symbol": "0"},
+            {"label": "1", "kc": [Keycode.ONE],   "symbol": "1"},
+            {"label": "2", "kc": [Keycode.TWO],   "symbol": "2"},
+            {"label": "3", "kc": [Keycode.THREE], "symbol": "3"},
+            {"label": "4", "kc": [Keycode.FOUR],  "symbol": "4"},
+            {"label": "5", "kc": [Keycode.FIVE],  "symbol": "5"},
+        ],
+    },
+    {
+        # The on-screen menu ctrl+enter opens does not respond to direct
+        # letter/ctrl-combo shortcuts — it must be navigated with the arrow
+        # keys and confirmed with Enter. No auto_exit: arrow down/up as many
+        # times as needed, then Enter to confirm, then "back" to return.
+        "label": "ctrl+enter", "kc": [Keycode.LEFT_CONTROL, Keycode.ENTER], "symbol": "ENT",
+        "auto_exit": False,
+        "submenu": [
+            {"label": "arrow down", "kc": [Keycode.DOWN_ARROW], "symbol": "D"},
+            {"label": "enter",      "kc": [Keycode.ENTER],      "symbol": "e"},
+            {"label": "arrow up",   "kc": [Keycode.UP_ARROW],   "symbol": "U"},
+        ],
+    },
+    {
+        # A pure organisational folder: "kc" is empty, so selecting the
+        # entry point sends no keystroke of its own — it just opens the
+        # submenu below. Each child still sends its own real shortcut.
+        "label": "Block Actions", "kc": [], "symbol": "BLK",
+        "auto_exit": True,
+        "submenu": [
+            {"label": "cut",       "kc": [Keycode.LEFT_CONTROL, Keycode.X],                    "symbol": "X"},
+            {"label": "copy",      "kc": [Keycode.LEFT_CONTROL, Keycode.C],                    "symbol": "C"},
+            {"label": "paste",     "kc": [Keycode.LEFT_CONTROL, Keycode.V],                    "symbol": "V"},
+            {"label": "duplicate", "kc": [Keycode.D],                                          "symbol": "D"},
+            {"label": "delete",    "kc": [Keycode.BACKSPACE],                                  "symbol": "BS"},
+            {"label": "undo",      "kc": [Keycode.LEFT_CONTROL, Keycode.Z],                    "symbol": "U"},
+            {"label": "redo",      "kc": [Keycode.LEFT_CONTROL, Keycode.LEFT_SHIFT, Keycode.Z], "symbol": "R"},
+        ],
+    },
 ]
 
-KEY_SYMBOLS = {
-    "arrow right": "R",
-    "arrow down":  "D",
-    "enter":       "e",
-    "arrow left":  "L",
-    "arrow up":    "U",
-    "delete":      "x",
-    "w":           "W",
-    "t":           "T",
-    "m":           "M",
-}
+# Only consulted for legacy tuple-style KEYCODES entries.
+KEY_SYMBOLS = {}
 
 # Load user overrides from config.py (if present on CIRCUITPY drive)
 try:
     from config import *
 except ImportError:
     pass  # config.py missing — use defaults above
+
+# ===============================================
+# ===== MENU NORMALIZATION =====
+# ===============================================
+# Accepts both the new dict format and the legacy tuple format (using
+# KEY_SYMBOLS for the latter) and produces a uniform tree of dicts.
+
+def normalize_item(raw, symbols_table):
+    if isinstance(raw, dict):
+        item = dict(raw)
+    else:
+        label, kc = raw[0], raw[1]
+        item = {"label": label, "kc": kc, "symbol": symbols_table.get(label, "?")}
+    item.setdefault("symbol", "?")
+    if item.get("submenu"):
+        item["submenu"] = [normalize_item(c, symbols_table) for c in item["submenu"]]
+        item.setdefault("auto_exit", False)
+    return item
+
+def normalize_menu(raw_list, symbols_table):
+    return [normalize_item(r, symbols_table) for r in raw_list]
+
+MENU = normalize_menu(KEYCODES, KEY_SYMBOLS)
+
+# ===============================================
+# ===== MENU / SUBMENU NAVIGATION STATE =====
+# ===============================================
+
+def _back_item():
+    """Synthetic item appended to every submenu's child list so the user
+    can return to the parent list without sending any keystroke."""
+    return {"label": "back", "kc": None, "symbol": "<", "is_back": True}
+
+class MenuFrame:
+    """One level of the menu stack: the items currently being scanned or
+    navigated, the active index within them, and whether picking a plain
+    (non-submenu) item here should automatically pop back to the parent."""
+    def __init__(self, items, auto_exit=False):
+        self.items = items
+        self.index = 0
+        self.auto_exit = auto_exit
+
+menu_stack = [MenuFrame(MENU, auto_exit=False)]
+
+def current_frame():
+    return menu_stack[-1]
+
+def current_item():
+    f = current_frame()
+    return f.items[f.index]
+
+def in_submenu():
+    return len(menu_stack) > 1
+
+def enter_submenu(item):
+    children = list(item["submenu"]) + [_back_item()]
+    menu_stack.append(MenuFrame(children, auto_exit=item.get("auto_exit", False)))
+
+def exit_submenu():
+    if len(menu_stack) > 1:
+        menu_stack.pop()
+
+def advance_index():
+    f = current_frame()
+    f.index = (f.index + 1) % len(f.items)
+
+def reset_menu():
+    """Called whenever a mode is (re)entered — always start at the top."""
+    while len(menu_stack) > 1:
+        menu_stack.pop()
+    menu_stack[0].index = 0
 
 # ===============================================
 # ===== DISPLAY HELPERS =====
@@ -304,11 +439,13 @@ RIGHT_WIDTH   = SCREEN_WIDTH - LEFT_WIDTH
 PURPLE     = 0x800080
 SCAN_COLOR = 0x0055FF
 DARK_BLUE  = 0x003399
-TEAL       = 0x007060      # Mode 0 accent colour
+TEAL       = 0x007060   # Mode 0 accent colour
 LIGHT_GRAY = 0xAAAAAA
 WHITE      = 0xFFFFFF
 GREEN      = 0x00CC00
 RED        = 0xFF0000
+ORANGE     = 0xFF8C00   # submenu entry-point / in-submenu visual cue
+SUBMENU_BORDER_PX = 10  # thickness (px) of the submenu-entry outline cue
 
 splash = displayio.Group()
 display.root_group = splash
@@ -323,16 +460,39 @@ def clear_display():
     while splash:
         splash.pop()
 
-def draw_keycode_screen(index, flash_color=None, scanning=False):
-    """Standard two-pane keycode display shared by single- and two-switch modes."""
+def draw_current_screen(flash_color=None, scanning=False):
+    """Standard two-pane display, aware of the current submenu context.
+
+    Visual cues (mirroring the color + outline cue used on the configurator
+    website for submenu entries):
+      - An item that OPENS a submenu gets a thicker ORANGE outline drawn
+        behind its normal panel color.
+      - While INSIDE a submenu, a small "SUB" badge is shown top-left.
+    """
     clear_display()
 
-    current_symbol = KEY_SYMBOLS.get(KEYCODES[index][0], "?")
-    next_index     = (index + 1) % len(KEYCODES)
-    next_symbol    = KEY_SYMBOLS.get(KEYCODES[next_index][0], "?")
+    f          = current_frame()
+    item       = f.items[f.index]
+    next_item  = f.items[(f.index + 1) % len(f.items)]
+
+    current_symbol = item.get("symbol", "?")
+    next_symbol    = next_item.get("symbol", "?")
+    is_entry_point = bool(item.get("submenu"))
 
     right_color = SCAN_COLOR if scanning else PURPLE
-    splash.append(create_background(right_color, LEFT_WIDTH, 0, RIGHT_WIDTH, SCREEN_HEIGHT))
+
+    if is_entry_point:
+        # Thicker colored outline behind the normal panel = "opens a submenu"
+        border = SUBMENU_BORDER_PX
+        splash.append(create_background(ORANGE, LEFT_WIDTH, 0, RIGHT_WIDTH, SCREEN_HEIGHT))
+        splash.append(create_background(
+            right_color,
+            LEFT_WIDTH + border, border,
+            RIGHT_WIDTH - 2 * border, SCREEN_HEIGHT - 2 * border
+        ))
+    else:
+        splash.append(create_background(right_color, LEFT_WIDTH, 0, RIGHT_WIDTH, SCREEN_HEIGHT))
+
     splash.append(label.Label(
         terminalio.FONT, text=current_symbol, color=WHITE, scale=9,
         anchor_point=(0.5, 0.5),
@@ -346,8 +506,19 @@ def draw_keycode_screen(index, flash_color=None, scanning=False):
         anchored_position=(LEFT_WIDTH // 2, SCREEN_HEIGHT // 2)
     ))
 
+    if in_submenu():
+        splash.append(label.Label(
+            terminalio.FONT, text="SUB", color=ORANGE, scale=1,
+            anchor_point=(0.0, 0.0), anchored_position=(2, 2)
+        ))
+
     if flash_color is not None:
         splash.append(create_background(flash_color, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
+        splash.append(label.Label(
+            terminalio.FONT, text="SENT!", color=WHITE, scale=5,
+            anchor_point=(0.5, 0.5),
+            anchored_position=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+        ))
 
 def draw_direct_switch_screen(active=None, flash_color=None):
     """
@@ -374,7 +545,7 @@ def draw_direct_switch_screen(active=None, flash_color=None):
         anchor_point=(0.5, 0.2),
         anchored_position=(half // 2, SCREEN_HEIGHT // 2 - 22)
     ))
-    sym1 = SWITCH1_SYMBOL[:3] if len(SWITCH1_SYMBOL) <= 3 else SWITCH1_SYMBOL[:3]
+    sym1 = SWITCH1_SYMBOL[:3]
     splash.append(label.Label(
         terminalio.FONT, text=sym1, color=WHITE, scale=4,
         anchor_point=(0.5, 0.5),
@@ -387,7 +558,7 @@ def draw_direct_switch_screen(active=None, flash_color=None):
         anchor_point=(0.5, 0.2),
         anchored_position=(half + (SCREEN_WIDTH - half) // 2, SCREEN_HEIGHT // 2 - 22)
     ))
-    sym2 = SWITCH2_SYMBOL[:3] if len(SWITCH2_SYMBOL) <= 3 else SWITCH2_SYMBOL[:3]
+    sym2 = SWITCH2_SYMBOL[:3]
     splash.append(label.Label(
         terminalio.FONT, text=sym2, color=WHITE, scale=4,
         anchor_point=(0.5, 0.5),
@@ -406,7 +577,7 @@ def draw_menu_screen():
     splash.append(create_background(WHITE, third - 1,     0, 2, SCREEN_HEIGHT))
     splash.append(create_background(WHITE, 2 * third - 1, 0, 2, SCREEN_HEIGHT))
 
-    # Left — D0 → Mode 0 Direct Switch
+    # Left — D0 (or double-click A1/A2) → Mode 0 Direct Switch
     splash.append(label.Label(
         terminalio.FONT, text="D0", color=WHITE, scale=2,
         anchor_point=(0.5, 0.5),
@@ -423,7 +594,7 @@ def draw_menu_screen():
         anchored_position=(third // 2, SCREEN_HEIGHT // 2 + 28)
     ))
 
-    # Centre — D1 or A2 → Single-Switch mode
+    # Centre — D1 or A2 (select switch) → Single-Switch mode
     splash.append(label.Label(
         terminalio.FONT, text="D1/A2", color=WHITE, scale=2,
         anchor_point=(0.5, 0.5),
@@ -440,7 +611,7 @@ def draw_menu_screen():
         anchored_position=(third + third // 2, SCREEN_HEIGHT // 2 + 28)
     ))
 
-    # Right — D2 or A1 → Two-Switch mode
+    # Right — D2 or A1 (nav switch) → Two-Switch mode
     splash.append(label.Label(
         terminalio.FONT, text="D2/A1", color=WHITE, scale=2,
         anchor_point=(0.5, 0.5),
@@ -458,12 +629,12 @@ def draw_menu_screen():
     ))
 
 # ===============================================
-# ===== SHARED ACTION DISPATCHER =====
+# ===== SHARED ACTION DISPATCHER (Mode 0) =====
 # ===============================================
 
 def dispatch_action(action, label_str="action"):
     """
-    Execute a switch action dict.
+    Execute a Mode 0 switch action dict.
     Supported types: key, mouse_click, mouse_scroll, mouse_move, media
     """
     try:
@@ -471,9 +642,7 @@ def dispatch_action(action, label_str="action"):
 
         if t == "key":
             keys = action.get("keys", [Keycode.ENTER])
-            keyboard.press(*keys)
-            time.sleep(0.05)
-            keyboard.release_all()
+            press_keys(keys)
             print(f"EVENT: Sent key: {label_str}")
 
         elif t == "mouse_click":
@@ -521,22 +690,85 @@ def dispatch_action(action, label_str="action"):
 # ===== SHARED KEYCODE SENDER (Modes 1 & 2) =====
 # ===============================================
 
-def send_keycode(index):
-    """Send keycode at index, flash the screen. Returns True on success."""
-    key_name, keycode = KEYCODES[index]
+# Modifiers get pressed and given a moment to register on the host BEFORE
+# the "main" key goes down. Sending everything in one press(*keys) call
+# usually works, but some apps only recognise a modifier+key combo if the
+# modifier's key-down arrives in its own HID report slightly ahead of the
+# main key — sending them all at once can look, to that app, like the main
+# key was pressed with no modifier yet. This staggering costs ~20ms and is
+# harmless for everything else.
+MODIFIER_KEYCODES = {
+    Keycode.LEFT_CONTROL, Keycode.RIGHT_CONTROL,
+    Keycode.LEFT_SHIFT,   Keycode.RIGHT_SHIFT,
+    Keycode.LEFT_ALT,     Keycode.RIGHT_ALT,
+    Keycode.LEFT_GUI,     Keycode.RIGHT_GUI,
+}
+
+def press_keys(keycode_list):
+    """Press modifiers first (with a brief settle delay), then the
+    remaining key(s), hold briefly, then release everything."""
+    mods  = [k for k in keycode_list if k in MODIFIER_KEYCODES]
+    mains = [k for k in keycode_list if k not in MODIFIER_KEYCODES]
+    if mods:
+        keyboard.press(*mods)
+        time.sleep(0.03)
+    if mains:
+        keyboard.press(*mains)
+    time.sleep(0.05)
+    keyboard.release_all()
+
+def send_keycode(item):
+    """Press/release item's keycode combo, flash the screen. Returns True on success."""
+    key_name, keycode = item["label"], item["kc"]
     try:
-        keyboard.press(*keycode)
-        time.sleep(0.05)
-        keyboard.release_all()
-        draw_keycode_screen(index, flash_color=GREEN)
+        press_keys(keycode)
+        draw_current_screen(flash_color=GREEN)
         print(f"EVENT: Sent: {key_name}")
         time.sleep(0.1)
         return True
     except Exception as e:
-        draw_keycode_screen(index, flash_color=RED)
+        draw_current_screen(flash_color=RED)
         print(f"ERROR: Failed to send {key_name}: {e}")
         time.sleep(0.1)
         return False
+
+def select_current_item():
+    """Handle picking whatever item is currently active:
+       - the synthetic "back" item exits the submenu with no keystroke
+       - an entry with no "kc" (a pure organisational folder) sends nothing,
+         just gives a quick visual acknowledgement
+       - a submenu entry point sends its own keycode (if any), then enters
+         its submenu
+       - a plain item sends its keycode, then auto-exits the submenu if
+         the enclosing entry point was configured with auto_exit
+    """
+    f    = current_frame()
+    item = f.items[f.index]
+
+    if item.get("is_back"):
+        print("EVENT: Back -> parent menu")
+        exit_submenu()
+        draw_current_screen()
+        return True
+
+    if item.get("kc"):
+        ok = send_keycode(item)
+    else:
+        # No keystroke defined (e.g. an organisational-only submenu folder)
+        draw_current_screen(flash_color=GREEN)
+        print(f"EVENT: Selected: {item['label']} (no keystroke)")
+        time.sleep(0.1)
+        ok = True
+
+    if item.get("submenu"):
+        print(f"EVENT: Enter submenu -> {item['label']}")
+        enter_submenu(item)
+    elif in_submenu() and f.auto_exit:
+        print("EVENT: Auto-exit submenu")
+        exit_submenu()
+
+    draw_current_screen()
+    return ok
 
 # ===============================================
 # ===== MODE 0: DIRECT SWITCH (A1=SW1, A2=SW2) =====
@@ -548,10 +780,9 @@ def run_direct_switch_mode():
     A1 → Switch 1 action  (default: Enter)
     A2 → Switch 2 action  (default: Tab)
 
-    Exit to mode select by holding A1 or A2 for SWITCH_HOLD_EXIT_SECS.
-    A short tap (released before the hold threshold) fires that switch's action;
-    a long hold returns to the menu without firing the action.
-    (If the board is reachable, the onboard RESET button also returns to the menu.)
+    Exit to mode select by holding A1 or A2 for SWITCH_HOLD_EXIT_SECS, or by
+    pressing D0. A short tap (released before the hold threshold) fires that
+    switch's action; a long hold returns to the menu without firing it.
 
     Actions are defined by SWITCH1_ACTION / SWITCH2_ACTION dicts and may be
     keyboard keys, mouse clicks/moves/scrolls, or media controls. See config.py.
@@ -559,7 +790,7 @@ def run_direct_switch_mode():
     print("\n--- Direct Switch Mode (Mode 0) ---")
     print(f"  SW1 (A1): {SWITCH1_LABEL}")
     print(f"  SW2 (A2): {SWITCH2_LABEL}")
-    print(f"  Hold a switch {SWITCH_HOLD_EXIT_SECS}s = back to menu (or press RESET)\n")
+    print(f"  Hold a switch {SWITCH_HOLD_EXIT_SECS}s, or press D0, = back to menu\n")
 
     last_sw1 = nav_pressed()
     last_sw2 = select_pressed()
@@ -568,6 +799,13 @@ def run_direct_switch_mode():
 
     while True:
         try:
+            # Onboard D0 exits to menu
+            if d0_pressed():
+                print("EVENT: D0 → back to menu")
+                while d0_pressed():
+                    time.sleep(0.01)
+                return
+
             sw1 = nav_pressed()
             sw2 = select_pressed()
             led.value = sw1 or sw2
@@ -627,24 +865,31 @@ def run_single_switch_mode():
       Short press  → select & send current item.
       Hold         → start auto-scanning.
       Press during scan → select & send, stop scanning.
-      RESET button → return to mode select.
+      D0 (onboard) → return to mode select.
     """
     print("\n--- Single-Switch Mode (A2) ---")
     print(f"  Hold to scan:    {HOLD_TO_SCAN_SECS}s")
     print(f"  Scan interval:   {SCAN_INTERVAL_SECS}s")
     print(f"  Max short press: {MAX_SHORT_PRESS_SECS}s")
-    print("  Press RESET = back to menu\n")
+    print("  D0 = back to menu\n")
 
-    current_index  = 0
+    reset_menu()
     state          = "IDLE"   # IDLE | PRESS_PENDING | SCANNING
     press_start    = None
     last_scan_time = None
 
-    draw_keycode_screen(current_index)
+    draw_current_screen()
 
     while True:
         try:
             now = time.monotonic()
+
+            # Onboard D0 exits to menu (from any submenu depth)
+            if d0_pressed():
+                print("EVENT: D0 → back to menu")
+                while d0_pressed():
+                    time.sleep(0.01)
+                return
 
             sw = select_pressed()   # A2
             led.value = sw
@@ -662,8 +907,7 @@ def run_single_switch_mode():
                 if not sw:
                     if hold <= MAX_SHORT_PRESS_SECS:
                         print(f"EVENT: Short press ({hold:.2f}s) → select")
-                        send_keycode(current_index)
-                        draw_keycode_screen(current_index)
+                        select_current_item()
                     else:
                         print(f"DEBUG: Ambiguous release ({hold:.2f}s) — ignored")
                     state = "IDLE"
@@ -672,23 +916,23 @@ def run_single_switch_mode():
                     print("EVENT: Hold threshold → start scanning")
                     last_scan_time = now
                     state = "SCANNING"
-                    draw_keycode_screen(current_index, scanning=True)
+                    draw_current_screen(scanning=True)
 
             # ── SCANNING ──────────────────────────────────────────
             elif state == "SCANNING":
                 if sw:
                     print("EVENT: Press during scan → select")
-                    send_keycode(current_index)
+                    select_current_item()
                     while select_pressed():
                         time.sleep(0.01)
                     state = "IDLE"
-                    draw_keycode_screen(current_index, scanning=False)
+                    draw_current_screen(scanning=False)
 
                 elif now - last_scan_time >= SCAN_INTERVAL_SECS:
-                    current_index = (current_index + 1) % len(KEYCODES)
+                    advance_index()
                     last_scan_time = now
-                    draw_keycode_screen(current_index, scanning=True)
-                    print(f"SCAN: → {KEYCODES[current_index][0]}")
+                    draw_current_screen(scanning=True)
+                    print(f"SCAN: → {current_item()['label']}")
 
             time.sleep(0.01)
 
@@ -707,34 +951,40 @@ def run_two_switch_mode():
     """
     A1 = Navigate  (advance to next item, Pull.UP active LOW).
     A2 = Select    (send current item,    Pull.UP active LOW).
-    RESET button   = Return to mode select.
+    D0 (onboard)   = Return to mode select.
     """
     print("\n--- Two-Switch Mode (A1=Nav, A2=Select) ---")
-    print("  Press RESET = back to menu\n")
+    print("  D0 = back to menu\n")
 
-    current_index  = 0
+    reset_menu()
     last_nav_state = nav_pressed()
     last_sel_state = select_pressed()
 
-    draw_keycode_screen(current_index)
+    draw_current_screen()
 
     while True:
         try:
+            # Onboard D0 exits to menu (from any submenu depth)
+            if d0_pressed():
+                print("EVENT: D0 → back to menu")
+                while d0_pressed():
+                    time.sleep(0.01)
+                return
+
             nav_state = nav_pressed()
             sel_state = select_pressed()
             led.value = nav_state or sel_state
 
             # A1 rising edge → navigate
             if nav_state and not last_nav_state:
-                current_index = (current_index + 1) % len(KEYCODES)
-                draw_keycode_screen(current_index)
-                print(f"EVENT: Navigate → {KEYCODES[current_index][0]}")
+                advance_index()
+                draw_current_screen()
+                print(f"EVENT: Navigate → {current_item()['label']}")
                 time.sleep(DEBOUNCE_TIME)
 
             # A2 rising edge → select
             if sel_state and not last_sel_state:
-                send_keycode(current_index)
-                draw_keycode_screen(current_index)
+                select_current_item()
                 time.sleep(DEBOUNCE_TIME)
 
             last_nav_state = nav_state
@@ -783,7 +1033,6 @@ def resolve_external_switch_gesture(first_switch):
     # No second press → single click maps to a mode by which switch was used
     return "single" if first_switch == "A2" else "two"
 
-
 # ===============================================
 # ===== STARTUP =====
 # ===============================================
@@ -792,7 +1041,11 @@ print("=" * 40)
 print("Switch Interface — Triple Mode")
 print("Feather ESP32-S3 Rev TFT")
 print("=" * 40)
-print(f"Loaded {len(KEYCODES)} keycodes")
+_submenu_count = sum(1 for i in MENU if i.get("submenu"))
+_child_count   = sum(len(i["submenu"]) for i in MENU if i.get("submenu"))
+print(f"Loaded {len(MENU)} top-level items "
+      f"({_submenu_count} submenu{'s' if _submenu_count != 1 else ''}, "
+      f"{_child_count} nested item{'s' if _child_count != 1 else ''})")
 print("External switches: A1 = Navigate/SW1, A2 = Select/SW2")
 print("D0 (onboard)             = Direct Switch Mode (Mode 0)")
 print("D1 (onboard) or single-click A2 = Single-Switch Scanning Mode")

@@ -4,7 +4,7 @@
    ============================================================ */
 
 /* ── GOOGLE FONTS ──────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Fira+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
 /* ── DESIGN TOKENS ─────────────────────────────────────────── */
 :root {
@@ -22,8 +22,8 @@
   --red:        #b02020;   /* error   — 5.3:1                      */
 
   /* Typography scale — min 18px body per WCAG 1.4.4 */
-  --ff-head:  'Syne', system-ui, sans-serif;
-  --ff-mono:  'Fira Mono', 'Courier New', monospace;
+  --ff-head:  "Atkinson Hyperlegible", Arial, sans-serif;
+  --ff-mono:  "Atkinson Hyperlegible", Arial, sans-serif;
 
   --text-xs:   1rem;       /* 16px — minimum for non-body text     */
   --text-sm:   1.0625rem;  /* 17px                                  */
