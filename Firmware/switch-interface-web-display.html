@@ -3,191 +3,188 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Switch Interface Display</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <title>Visual &amp; Auditory Scanning Display — Blockly Accessible Switch Interface</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖲️</text></svg>">
+  <meta name="description" content="Browser companion app that mirrors the BASI device display with TTS and audio feedback.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="basi-shared.css">
   <style>
+    /* ── APP-LEVEL OVERRIDES (dark theme for the interactive tool) ── */
     :root {
-      --bg:         #000000;
-      --surface:    #0d0d0d;
-      --border:     #2a2a2a;
-      --border-hi:  #444444;
-      --text:       #ffffff;
-      --dim:        #888888;
-      --accent:     #ffb300;
-      --accent-dim: #7a5500;
-      --green:      #00e676;
-      --red:        #ff1744;
-      --blue:       #00b0ff;
-      --sent-bg:    #1a3300;
+      --app-bg:         #000000;
+      --app-surface:    #0d0d0d;
+      --app-border:     #2a2a2a;
+      --app-border-hi:  #484848;
+      --app-text:       #ffffff;
+      --app-dim:        #909090;
+      --app-accent:     #ffb300;
+      --app-accent-dim: #7a5500;
+      --app-green:      #00e676;
+      --app-red:        #ff1744;
+      --app-blue:       #00b0ff;
+      --app-sent-bg:    #1a3300;
+      /* Increase minimum font for dark app area */
+      --app-text-xs:   1rem;
+      --app-text-sm:   1.0625rem;
+      --app-text-base: 1.125rem;
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    /* The tool area uses its own dark palette */
+    .app,
+    .app * {
+      box-sizing: border-box;
+    }
 
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'DM Mono', monospace;
-      font-size: 16px;
-      line-height: 1.4;
+    html, body { height: 100%; }
+
+    body {
+      background: var(--app-bg);
+      color: var(--app-text);
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
-    /* ── TOP NAV ─────────────────────────────────────────── */
-    .nav {
+    /* Override shared nav to dark theme when inside the app */
+    body .tool-nav-band {
+      background: var(--app-surface);
+      border-bottom-color: var(--app-border);
+    }
+    body .tool-nav-band .nav-logo {
+      border-right-color: var(--app-border);
+      color: var(--app-text);
+      background: transparent;
+    }
+    body .tool-nav-band .nav-logo:hover { background: var(--app-accent); color: #000; }
+    body .tool-nav-band .nav-links a {
+      color: var(--app-dim);
+      border-right-color: var(--app-border);
+    }
+    body .tool-nav-band .nav-links a:hover { background: rgba(255,255,255,0.06); color: var(--app-text); }
+    body .tool-nav-band .nav-links a[aria-current] { background: var(--app-accent); color: #000; }
+    body .tool-nav-band .nav-exit-btn {
+      color: var(--app-dim);
+      border-left-color: var(--app-border);
+    }
+    body .tool-nav-band .nav-exit-btn:hover { background: rgba(255,255,255,0.08); color: var(--app-text); }
+
+    /* ── INNER NAV (tabs + connect) ──────────────────────── */
+    .inner-nav {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 20px;
-      height: 52px;
-      border-bottom: 2px solid var(--border);
-      background: var(--surface);
+      height: 56px;
+      border-bottom: 2px solid var(--app-border);
+      background: var(--app-surface);
       flex-shrink: 0;
     }
 
-    .nav-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.5rem;
+    .inner-nav-title {
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+      font-size: 1.6rem;
       letter-spacing: 0.12em;
-      color: var(--accent);
+      color: var(--app-accent);
       white-space: nowrap;
     }
 
-    .nav-tabs {
-      display: flex;
-      gap: 4px;
-    }
+    .nav-tabs { display: flex; gap: 4px; }
 
     .tab-btn {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.75rem;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+      font-size: var(--app-text-sm);
       font-weight: 500;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      padding: 6px 18px;
-      border: 2px solid var(--border);
+      padding: 0.6rem 1.4rem;
+      border: 2px solid var(--app-border);
       background: transparent;
-      color: var(--dim);
+      color: var(--app-dim);
       cursor: pointer;
       transition: all 0.15s;
+      border-radius: 3px;
+      min-height: 48px;
     }
+    .tab-btn:hover { border-color: var(--app-accent); color: var(--app-accent); }
+    .tab-btn.active { border-color: var(--app-accent); background: var(--app-accent); color: #000; }
 
-    .tab-btn:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .tab-btn.active {
-      border-color: var(--accent);
-      background: var(--accent);
-      color: #000;
-    }
-
-    .nav-status {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    .inner-nav-status { display: flex; align-items: center; gap: 10px; }
 
     .status-dot {
-      width: 10px;
-      height: 10px;
+      width: 12px; height: 12px;
       border-radius: 50%;
-      background: var(--dim);
+      background: var(--app-dim);
       transition: background 0.3s;
+      flex-shrink: 0;
     }
-    .status-dot.connected   { background: var(--green); box-shadow: 0 0 8px var(--green); }
-    .status-dot.advertising { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
-    .status-dot.error       { background: var(--red); box-shadow: 0 0 8px var(--red); }
+    .status-dot.connected   { background: var(--app-green); box-shadow: 0 0 8px var(--app-green); }
+    .status-dot.advertising { background: var(--app-accent); box-shadow: 0 0 8px var(--app-accent); }
+    .status-dot.error       { background: var(--app-red); box-shadow: 0 0 8px var(--app-red); }
 
     .status-label {
-      font-size: 0.7rem;
+      font-size: var(--app-text-xs);
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--dim);
-      min-width: 96px;
+      color: var(--app-dim);
+      min-width: 108px;
     }
 
     .connect-btn {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.7rem;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+      font-size: var(--app-text-sm);
       font-weight: 500;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      padding: 5px 14px;
-      border: 2px solid var(--green);
+      padding: 0.55rem 1.1rem;
+      border: 2px solid var(--app-green);
       background: transparent;
-      color: var(--green);
+      color: var(--app-green);
       cursor: pointer;
       transition: all 0.15s;
+      border-radius: 3px;
+      min-height: 48px;
     }
+    .connect-btn:hover { background: var(--app-green); color: #000; }
+    .connect-btn.disconnect { border-color: var(--app-red); color: var(--app-red); }
+    .connect-btn.disconnect:hover { background: var(--app-red); color: #fff; }
 
-    .connect-btn:hover {
-      background: var(--green);
-      color: #000;
-    }
-
-    .connect-btn.disconnect {
-      border-color: var(--red);
-      color: var(--red);
-    }
-
-    .connect-btn.disconnect:hover {
-      background: var(--red);
-      color: #fff;
-    }
-
-    /* TTS toggle */
     .tts-btn {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.7rem;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+      font-size: var(--app-text-sm);
       font-weight: 500;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      padding: 5px 12px;
-      border: 2px solid var(--border);
+      padding: 0.55rem 1rem;
+      border: 2px solid var(--app-border);
       background: transparent;
-      color: var(--dim);
+      color: var(--app-dim);
       cursor: pointer;
       transition: all 0.15s;
       display: flex;
       align-items: center;
       gap: 6px;
+      border-radius: 3px;
+      min-height: 48px;
     }
+    .tts-btn:hover { border-color: var(--app-blue); color: var(--app-blue); }
+    .tts-btn.on { border-color: var(--app-blue); background: var(--app-blue); color: #000; }
 
-    .tts-btn:hover {
-      border-color: var(--blue);
-      color: var(--blue);
-    }
-
-    .tts-btn.on {
-      border-color: var(--blue);
-      background: var(--blue);
-      color: #000;
-    }
-
-    /* ── LAYOUT ──────────────────────────────────────────── */
+    /* ── APP LAYOUT ──────────────────────────────────────── */
     .app {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-
-    .tab-content {
       flex: 1;
-      overflow: hidden;
-      display: none;
-    }
-
-    .tab-content.active {
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
 
-    /* ── TAB 1: DISPLAY ──────────────────────────────────── */
-    #tab-display {
-      flex-direction: column;
-    }
+    .tab-content { flex: 1; overflow: hidden; display: none; }
+    .tab-content.active { display: flex; flex-direction: column; }
+
+    /* ── DISPLAY TAB ─────────────────────────────────────── */
+    #tab-display { flex-direction: column; }
 
     .display-main {
       flex: 1;
@@ -202,28 +199,28 @@
       display: flex;
       align-items: center;
       gap: 16px;
-      padding: 8px 14px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-left: 4px solid var(--accent);
+      padding: 10px 16px;
+      background: var(--app-surface);
+      border: 1px solid var(--app-border);
+      border-left: 4px solid var(--app-accent);
       flex-shrink: 0;
     }
 
     .mode-label {
-      font-size: 0.65rem;
+      font-size: var(--app-text-xs);
       letter-spacing: 0.15em;
       text-transform: uppercase;
-      color: var(--dim);
+      color: var(--app-dim);
     }
 
     .mode-value {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1rem;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+      font-size: 1.1rem;
       letter-spacing: 0.1em;
-      color: var(--accent);
+      color: var(--app-accent);
     }
 
-    /* Current + Next side by side */
+    /* Current + Next panels */
     .key-panels {
       flex: 1;
       display: grid;
@@ -235,101 +232,68 @@
     .key-panel {
       display: flex;
       flex-direction: column;
-      border: 2px solid var(--border);
-      background: var(--surface);
+      border: 2px solid var(--app-border);
+      background: var(--app-surface);
       overflow: hidden;
       position: relative;
       transition: border-color 0.2s;
     }
+    .key-panel.current { border-color: var(--app-border-hi); }
+    .key-panel.flash-sent { border-color: var(--app-green) !important; background: var(--app-sent-bg) !important; }
 
-    .key-panel.current {
-      border-color: var(--border-hi);
-    }
-
-    .key-panel.flash-sent {
-      border-color: var(--green) !important;
-      background: var(--sent-bg) !important;
-    }
-
-    /* ── SCANNING STATE ──────────────────────────────────── */
+    /* Scanning state */
     .key-panel.scanning {
-      border-color: var(--blue) !important;
+      border-color: var(--app-blue) !important;
       animation: scan-pulse 0.9s ease-in-out infinite;
     }
-
     @keyframes scan-pulse {
-      0%, 100% { box-shadow: 0 0 0px 0px rgba(0,176,255,0.0),  inset 0 0 0px  0px rgba(0,176,255,0.0); }
-      50%       { box-shadow: 0 0 22px 4px rgba(0,176,255,0.55), inset 0 0 28px 0px rgba(0,176,255,0.12); }
+      0%, 100% { box-shadow: none; }
+      50% { box-shadow: 0 0 22px 4px rgba(0,176,255,0.55), inset 0 0 28px 0px rgba(0,176,255,0.12); }
     }
+    .key-panel.scanning .key-panel-label { color: var(--app-blue) !important; border-bottom-color: #003860 !important; }
+    .key-panel.scanning .key-symbol      { color: var(--app-blue) !important; }
 
-    .key-panel.scanning .key-panel-label {
-      color: var(--blue) !important;
-      border-bottom-color: #003860 !important;
-    }
-
-    .key-panel.scanning .key-symbol {
-      color: var(--blue) !important;
-    }
-
-    /* Scanning ticker bar — thin progress strip at top of panel */
+    /* Scan progress bar */
     .scan-bar {
-      position: absolute;
-      top: 0; left: 0;
-      height: 4px;
-      width: 0%;
-      background: var(--blue);
-      transition: none;
+      position: absolute; top: 0; left: 0;
+      height: 5px; width: 0%;
+      background: var(--app-blue);
       z-index: 2;
     }
-
     .key-panel.scanning .scan-bar {
       animation: scan-bar-fill var(--scan-interval, 1s) linear infinite;
     }
+    @keyframes scan-bar-fill { from { width: 0%; } to { width: 100%; } }
 
-    @keyframes scan-bar-fill {
-      from { width: 0%; }
-      to   { width: 100%; }
-    }
-
-    /* Scanning badge in the mode bar */
+    /* Scanning badge */
     .scan-badge {
       display: none;
       align-items: center;
       gap: 6px;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 0.9rem;
+      font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
+      font-size: 1rem;
       letter-spacing: 0.12em;
-      color: var(--blue);
+      color: var(--app-blue);
     }
-
     .scan-badge.visible { display: flex; }
-
     .scan-dot {
-      width: 8px; height: 8px;
+      width: 9px; height: 9px;
       border-radius: 50%;
-      background: var(--blue);
+      background: var(--app-blue);
       animation: blink 0.9s ease-in-out infinite;
     }
-
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.15; }
-    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
 
     .key-panel-label {
-      font-size: 0.65rem;
+      font-size: var(--app-text-xs);
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: var(--dim);
+      color: var(--app-dim);
       padding: 10px 16px 6px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--app-border);
       flex-shrink: 0;
     }
-
-    .key-panel.current .key-panel-label {
-      color: var(--accent);
-      border-bottom-color: var(--accent-dim);
-    }
+    .key-panel.current .key-panel-label { color: var(--app-accent); border-bottom-color: var(--app-accent-dim); }
 
     .key-panel-body {
       flex: 1;
@@ -338,76 +302,64 @@
       align-items: center;
       justify-content: center;
       padding: 12px;
-      gap: 8px;
+      gap: 10px;
     }
 
     .key-symbol {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: clamp(4rem, 14vw, 10rem);
       line-height: 0.9;
-      color: var(--text);
+      color: var(--app-text);
       transition: color 0.2s;
       text-align: center;
     }
-
-    .key-panel.flash-sent .key-symbol {
-      color: var(--green);
-    }
-
-    .key-panel.next .key-symbol {
-      font-size: clamp(2.5rem, 5vw, 4rem);
-      color: var(--dim);
-    }
+    .key-panel.flash-sent .key-symbol { color: var(--app-green); }
+    .key-panel.next .key-symbol { font-size: clamp(2.5rem, 5vw, 4rem); color: var(--app-dim); }
 
     .key-name {
-      font-size: clamp(0.7rem, 1.8vw, 1.1rem);
+      font-size: clamp(var(--app-text-base), 2vw, 1.4rem);
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--dim);
+      color: var(--app-dim);
       text-align: center;
     }
-
     .key-panel.current .key-name {
-      color: var(--text);
-      font-size: clamp(0.85rem, 2vw, 1.3rem);
+      color: var(--app-text);
+      font-size: clamp(var(--app-text-lg), 2.2vw, 1.6rem);
     }
 
     .sent-badge {
       position: absolute;
-      top: 50%;
-      left: 50%;
+      top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
       font-size: clamp(2rem, 6vw, 4rem);
       letter-spacing: 0.2em;
-      color: var(--green);
+      color: var(--app-green);
       background: rgba(0,0,0,0.85);
       padding: 10px 28px;
-      border: 3px solid var(--green);
+      border: 3px solid var(--app-green);
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.15s;
     }
-
-    .sent-badge.visible {
-      opacity: 1;
-    }
+    .sent-badge.visible { opacity: 1; }
 
     /* Serial log */
     .log-section {
       flex-shrink: 0;
-      border-top: 1px solid var(--border);
-      background: var(--surface);
+      border-top: 1px solid var(--app-border);
+      background: var(--app-surface);
     }
 
     .log-toggle {
       width: 100%;
-      padding: 6px 16px;
+      padding: 10px 16px;
       background: transparent;
       border: none;
-      color: var(--dim);
-      font-family: 'DM Mono', monospace;
-      font-size: 0.65rem;
+      color: var(--app-dim);
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+      font-size: var(--app-text-xs);
       letter-spacing: 0.15em;
       text-transform: uppercase;
       cursor: pointer;
@@ -416,57 +368,135 @@
       align-items: center;
       gap: 8px;
       transition: color 0.15s;
+      min-height: 44px;
     }
-
-    .log-toggle:hover { color: var(--text); }
-
+    .log-toggle:hover { color: var(--app-text); }
     .log-toggle .arrow { transition: transform 0.2s; display: inline-block; }
     .log-toggle.open .arrow { transform: rotate(90deg); }
 
-    .log-body {
-      height: 0;
-      overflow: hidden;
-      transition: height 0.2s;
-    }
-
-    .log-body.open {
-      height: 120px;
-    }
+    .log-body { height: 0; overflow: hidden; transition: height 0.2s; }
+    .log-body.open { height: 130px; }
 
     .log-lines {
-      height: 120px;
+      height: 130px;
       overflow-y: auto;
-      padding: 6px 16px 8px;
-      font-size: 0.68rem;
-      color: var(--dim);
-      line-height: 1.6;
+      padding: 8px 16px 10px;
+      font-size: var(--app-text-xs);
+      color: var(--app-dim);
+      line-height: 1.7;
       scroll-behavior: smooth;
     }
-
-    .log-lines .log-event  { color: var(--green); }
-    .log-lines .log-scan   { color: var(--blue); }
-    .log-lines .log-error  { color: var(--red); }
-    .log-lines .log-mode   { color: var(--accent); }
+    .log-lines .log-event { color: var(--app-green); }
+    .log-lines .log-scan  { color: var(--app-blue); }
+    .log-lines .log-error { color: var(--app-red); }
+    .log-lines .log-mode  { color: var(--app-accent); }
 
     /* No-serial notice */
     .no-serial-notice {
       display: none;
-      margin: 8px 20px;
-      padding: 10px 14px;
-      background: rgba(255, 179, 0, 0.08);
-      border: 1px solid var(--accent-dim);
-      color: var(--accent);
-      font-size: 0.7rem;
-      letter-spacing: 0.05em;
-      line-height: 1.6;
+      margin: 10px 20px;
+      padding: 14px 18px;
+      background: rgba(255,179,0,0.08);
+      border: 2px solid var(--app-accent-dim);
+      color: var(--app-accent);
+      font-size: var(--app-text-sm);
+      letter-spacing: 0.04em;
+      line-height: 1.7;
       flex-shrink: 0;
+      border-radius: 3px;
     }
 
-    /* ── TAB 2: INPUT ────────────────────────────────────── */
-    #tab-input {
-      flex-direction: column;
-      gap: 0;
+    /* Settings */
+    .settings-section {
+      padding: 12px 20px;
+      border-top: 1px solid var(--app-border);
+      background: var(--app-surface);
+      flex-shrink: 0;
     }
+    .settings-toggle {
+      background: transparent;
+      border: none;
+      color: var(--app-dim);
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+      font-size: var(--app-text-xs);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: color 0.15s;
+      padding: 0;
+      min-height: 44px;
+    }
+    .settings-toggle:hover { color: var(--app-accent); }
+    .settings-toggle .arrow { transition: transform 0.2s; display: inline-block; }
+    .settings-toggle.open .arrow { transform: rotate(90deg); }
+
+    .settings-body { max-height: 0; overflow: hidden; transition: max-height 0.3s; }
+    .settings-body.open { max-height: 300px; }
+
+    .settings-content { padding-top: 12px; }
+
+    .settings-note {
+      font-size: var(--app-text-sm);
+      color: var(--app-dim);
+      margin-bottom: 8px;
+      line-height: 1.7;
+    }
+
+    #keycodes-editor {
+      width: 100%;
+      height: 140px;
+      background: #080808;
+      border: 1px solid var(--app-border);
+      color: var(--app-green);
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+      font-size: var(--app-text-sm);
+      padding: 8px 12px;
+      resize: none;
+      outline: none;
+      line-height: 1.75;
+      border-radius: 3px;
+    }
+    #keycodes-editor:focus { border-color: var(--app-border-hi); }
+
+    .settings-actions { display: flex; gap: 8px; margin-top: 8px; }
+
+    .apply-btn {
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+      font-size: var(--app-text-xs);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.55rem 1.1rem;
+      border: 2px solid var(--app-accent);
+      background: transparent;
+      color: var(--app-accent);
+      cursor: pointer;
+      transition: all 0.15s;
+      border-radius: 3px;
+      min-height: 44px;
+    }
+    .apply-btn:hover { background: var(--app-accent); color: #000; }
+
+    .reset-btn {
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+      font-size: var(--app-text-xs);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.55rem 1.1rem;
+      border: 2px solid var(--app-border);
+      background: transparent;
+      color: var(--app-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+      border-radius: 3px;
+      min-height: 44px;
+    }
+    .reset-btn:hover { border-color: var(--app-text); color: var(--app-text); }
+
+    /* ── INPUT TAB ───────────────────────────────────────── */
+    #tab-input { flex-direction: column; }
 
     .input-main {
       flex: 1;
@@ -479,8 +509,8 @@
 
     .last-key-panel {
       flex: 1;
-      border: 2px solid var(--border-hi);
-      background: var(--surface);
+      border: 2px solid var(--app-border-hi);
+      background: var(--app-surface);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -488,18 +518,15 @@
       cursor: text;
       min-height: 0;
     }
-
-    .last-key-panel:focus-within {
-      border-color: var(--accent);
-    }
+    .last-key-panel:focus-within { border-color: var(--app-accent); }
 
     .last-key-header {
-      padding: 10px 16px 6px;
-      font-size: 0.65rem;
+      padding: 12px 18px 7px;
+      font-size: var(--app-text-xs);
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: var(--accent);
-      border-bottom: 1px solid var(--accent-dim);
+      color: var(--app-accent);
+      border-bottom: 1px solid var(--app-accent-dim);
       flex-shrink: 0;
     }
 
@@ -514,279 +541,169 @@
     }
 
     .last-key-symbol {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: clamp(5rem, 18vw, 14rem);
       line-height: 0.85;
-      color: var(--text);
+      color: var(--app-text);
       transition: color 0.1s, transform 0.1s;
       text-align: center;
       user-select: none;
     }
-
-    .last-key-symbol.flash {
-      color: var(--accent);
-      transform: scale(1.05);
-    }
+    .last-key-symbol.flash { color: var(--app-accent); transform: scale(1.05); }
 
     .last-key-name {
-      font-size: clamp(1rem, 2.5vw, 1.6rem);
+      font-size: clamp(var(--app-text-lg), 2.8vw, 2rem);
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--dim);
+      color: var(--app-dim);
       text-align: center;
       user-select: none;
     }
 
     .focus-hint {
-      position: absolute;
-      inset: 0;
+      position: absolute; inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
       background: rgba(0,0,0,0.7);
       transition: opacity 0.2s;
     }
-
     .focus-hint.hidden { opacity: 0; pointer-events: none; }
+    .focus-hint-icon { font-size: 3.2rem; }
+    .focus-hint-text { font-size: var(--app-text-base); letter-spacing: 0.1em; text-transform: uppercase; color: var(--app-accent); }
 
-    .focus-hint-icon {
-      font-size: 3rem;
-    }
-
-    .focus-hint-text {
-      font-size: 1rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--accent);
-    }
-
-    /* The hidden textarea that captures actual keystrokes */
     #hidden-input {
       position: absolute;
       opacity: 0;
-      width: 1px;
-      height: 1px;
-      top: 0;
-      left: 0;
+      width: 1px; height: 1px;
+      top: 0; left: 0;
       pointer-events: none;
     }
 
-    /* Text output area */
     .text-output-panel {
       flex-shrink: 0;
-      border: 2px solid var(--border);
-      background: var(--surface);
+      border: 2px solid var(--app-border);
+      background: var(--app-surface);
     }
-
     .text-output-header {
-      padding: 8px 16px 5px;
-      font-size: 0.65rem;
+      padding: 10px 18px 6px;
+      font-size: var(--app-text-xs);
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: var(--dim);
-      border-bottom: 1px solid var(--border);
+      color: var(--app-dim);
+      border-bottom: 1px solid var(--app-border);
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-
     .clear-btn {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.6rem;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+      font-size: var(--app-text-xs);
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      padding: 2px 8px;
-      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border: 1px solid var(--app-border);
       background: transparent;
-      color: var(--dim);
+      color: var(--app-dim);
       cursor: pointer;
       transition: all 0.15s;
+      border-radius: 3px;
+      min-height: 36px;
     }
-
-    .clear-btn:hover {
-      border-color: var(--red);
-      color: var(--red);
-    }
+    .clear-btn:hover { border-color: var(--app-red); color: var(--app-red); }
 
     #text-output {
       width: 100%;
-      height: 80px;
+      height: 88px;
       background: transparent;
       border: none;
-      color: var(--text);
-      font-family: 'DM Mono', monospace;
-      font-size: 1.4rem;
+      color: var(--app-text);
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+      font-size: 1.5rem;
       letter-spacing: 0.05em;
-      padding: 10px 16px;
+      padding: 12px 18px;
       resize: none;
       outline: none;
       line-height: 1.4;
     }
 
-    /* Settings panel */
-    .settings-section {
-      padding: 12px 20px;
-      border-top: 1px solid var(--border);
-      background: var(--surface);
-      flex-shrink: 0;
-    }
-
-    .settings-toggle {
-      background: transparent;
-      border: none;
-      color: var(--dim);
-      font-family: 'DM Mono', monospace;
-      font-size: 0.65rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: color 0.15s;
-      padding: 0;
-    }
-
-    .settings-toggle:hover { color: var(--accent); }
-    .settings-toggle .arrow { transition: transform 0.2s; display: inline-block; }
-    .settings-toggle.open .arrow { transform: rotate(90deg); }
-
-    .settings-body {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s;
-    }
-
-    .settings-body.open { max-height: 300px; }
-
-    .settings-content {
-      padding-top: 12px;
-    }
-
-    .settings-note {
-      font-size: 0.65rem;
-      color: var(--dim);
-      margin-bottom: 8px;
-      line-height: 1.6;
-    }
-
-    #keycodes-editor {
-      width: 100%;
-      height: 130px;
-      background: #080808;
-      border: 1px solid var(--border);
-      color: var(--green);
-      font-family: 'DM Mono', monospace;
-      font-size: 0.72rem;
-      padding: 8px 12px;
-      resize: none;
-      outline: none;
-      line-height: 1.7;
-    }
-
-    #keycodes-editor:focus { border-color: var(--border-hi); }
-
-    .settings-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .apply-btn {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.65rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 5px 14px;
-      border: 1px solid var(--accent);
-      background: transparent;
-      color: var(--accent);
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .apply-btn:hover { background: var(--accent); color: #000; }
-
-    .reset-btn {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.65rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 5px 14px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--dim);
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .reset-btn:hover { border-color: var(--text); color: var(--text); }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
-
-    /* Placeholder state */
+    /* Placeholder glyphs */
     .placeholder-glyph {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: "Atkinson Hyperlegible", Arial, sans-serif;
       font-size: clamp(4rem, 14vw, 10rem);
       line-height: 0.9;
-      color: var(--border-hi);
+      color: var(--app-border-hi);
     }
     .placeholder-name {
-      font-size: clamp(0.85rem, 2vw, 1.3rem);
+      font-size: clamp(var(--app-text-base), 2vw, 1.4rem);
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--border-hi);
+      color: var(--app-border-hi);
     }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--app-border-hi); border-radius: 3px; }
 
     /* Responsive */
     @media (max-width: 600px) {
       .key-panels { grid-template-columns: 1fr; grid-template-rows: 3fr 1fr; }
-      .nav-title { font-size: 1.1rem; }
-    }
-
-    /* Announce-only for screen readers */
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
+      .inner-nav-title { font-size: 1.15rem; }
     }
   </style>
 </head>
 <body>
 
-<div class="app">
+<a href="#main-app" class="skip-link">Skip to app</a>
 
-  <!-- ── NAV ── -->
-  <nav class="nav">
-    <span class="nav-title">Switch Interface</span>
+<header role="banner">
+  <nav class="tool-nav-band" aria-label="Site navigation">
+    <a href="index.html" class="nav-logo" aria-label="Blockly Accessible Switch Interface – home">BASI<span>.</span></a>
+    <ul class="nav-links" role="list">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="build.html">Build</a></li>
+      <li><a href="switch-interface-web-display.html" aria-current="page">Display</a></li>
+      <li><a href="blockly_shortcut_configurator.html">Configure</a></li>
+    </ul>
+    <a href="index.html" class="nav-exit-btn" id="exit-btn"
+       aria-label="Exit display app and return to home page (keyboard shortcut: Escape)"
+       aria-keyshortcuts="Escape">
+      ← Home <kbd class="kbd-hint" aria-hidden="true">Esc</kbd>
+    </a>
+  </nav>
+</header>
 
-    <div class="nav-tabs">
-      <button class="tab-btn active" onclick="switchTab('display')" id="btn-display">Display</button>
-      <button class="tab-btn"        onclick="switchTab('input')"   id="btn-input">Input</button>
+<div aria-live="polite" aria-atomic="true" class="nav-toast" id="nav-toast" role="status"></div>
+
+<div class="app" id="main-app">
+
+  <!-- ── INNER NAV ── -->
+  <nav class="inner-nav" aria-label="Display tool navigation">
+    <span class="inner-nav-title" aria-hidden="true">Switch Interface</span>
+    <div class="nav-tabs" role="tablist" aria-label="Display modes">
+      <button class="tab-btn active" role="tab" aria-selected="true"
+              onclick="switchTab('display')" id="btn-display" aria-controls="tab-display">Display</button>
+      <button class="tab-btn" role="tab" aria-selected="false"
+              onclick="switchTab('input')"   id="btn-input"   aria-controls="tab-input">Input</button>
     </div>
-
-    <div class="nav-status">
-      <button class="tts-btn" id="tts-btn" onclick="toggleTTS()" title="Text-to-speech feedback">
-        <span id="tts-icon">🔇</span> TTS
+    <div class="inner-nav-status">
+      <button class="tts-btn" id="tts-btn" onclick="toggleTTS()"
+              aria-pressed="false" aria-label="Text-to-speech feedback — off">
+        <span id="tts-icon" aria-hidden="true">🔇</span> TTS
       </button>
-      <span class="status-dot" id="status-dot"></span>
-      <span class="status-label" id="status-label">Not connected</span>
+      <span class="status-dot" id="status-dot" role="status" aria-hidden="true"></span>
+      <span class="status-label" id="status-label" aria-live="polite">Not connected</span>
       <button class="connect-btn" id="connect-btn" onclick="toggleConnection()">Connect</button>
     </div>
   </nav>
 
   <!-- ── TAB 1: DISPLAY ── -->
-  <div class="tab-content active" id="tab-display">
+  <div class="tab-content active" id="tab-display" role="tabpanel" aria-labelledby="btn-display">
 
-    <div id="no-serial-notice" class="no-serial-notice">
+    <div id="no-serial-notice" class="no-serial-notice" role="alert">
       ⚠ Web Serial is not supported in this browser. Use Chrome or Edge and open this file
       from a local server or file:// URL. Once connected, the display will update
       automatically from serial output. The Input tab works in all browsers.
@@ -794,10 +711,10 @@
 
     <div class="display-main">
 
-      <div class="mode-bar">
+      <div class="mode-bar" role="status" aria-live="polite" aria-label="Current mode and scan status">
         <span class="mode-label">Mode</span>
         <span class="mode-value" id="mode-value">–</span>
-        <div class="scan-badge" id="scan-badge">
+        <div class="scan-badge" id="scan-badge" aria-hidden="true">
           <div class="scan-dot"></div>
           <span>Scanning</span>
         </div>
@@ -809,21 +726,23 @@
 
         <!-- Current key -->
         <div class="key-panel current" id="current-panel">
-          <div class="scan-bar" id="scan-bar"></div>
+          <div class="scan-bar" id="scan-bar" aria-hidden="true"></div>
           <div class="key-panel-label">Current</div>
           <div class="key-panel-body">
-            <div class="key-symbol placeholder-glyph" id="current-symbol">–</div>
-            <div class="key-name placeholder-name"   id="current-name">Waiting for device…</div>
+            <div class="key-symbol placeholder-glyph" id="current-symbol" aria-live="polite" aria-label="Current key">–</div>
+            <div class="key-name placeholder-name" id="current-name">Waiting for device…</div>
           </div>
-          <div class="sent-badge" id="sent-badge">SENT</div>
+          <div class="sent-badge" id="sent-badge" aria-hidden="true">SENT</div>
         </div>
 
         <!-- Next key -->
         <div class="key-panel next" id="next-panel">
           <div class="key-panel-label">Next</div>
           <div class="key-panel-body">
-            <div class="key-symbol" id="next-symbol" style="color:var(--border-hi); font-size:clamp(2.5rem,5vw,4rem)">–</div>
-            <div class="key-name"   id="next-name"   style="color:var(--border-hi)">–</div>
+            <div class="key-symbol" id="next-symbol"
+                 style="color:var(--app-border-hi);font-size:clamp(2.5rem,5vw,4rem)"
+                 aria-label="Next key">–</div>
+            <div class="key-name" id="next-name" style="color:var(--app-border-hi)">–</div>
           </div>
         </div>
 
@@ -833,27 +752,33 @@
 
     <!-- Log -->
     <div class="log-section">
-      <button class="log-toggle" id="log-toggle" onclick="toggleLog()">
-        <span class="arrow">▶</span> Serial Log
-        <span id="log-count" style="color:var(--dim); margin-left:6px">(0 lines)</span>
+      <button class="log-toggle" id="log-toggle" onclick="toggleLog()"
+              aria-expanded="false" aria-controls="log-body">
+        <span class="arrow" aria-hidden="true">▶</span> Serial Log
+        <span id="log-count" style="color:var(--app-dim);margin-left:6px">(0 lines)</span>
       </button>
-      <div class="log-body" id="log-body">
-        <div class="log-lines" id="log-lines"></div>
+      <div class="log-body" id="log-body" role="region" aria-label="Serial log">
+        <div class="log-lines" id="log-lines" aria-live="off"></div>
       </div>
     </div>
 
     <!-- Settings -->
     <div class="settings-section">
-      <button class="settings-toggle" id="settings-toggle" onclick="toggleSettings()">
-        <span class="arrow">▶</span> Keycode List (must match device)
+      <button class="settings-toggle" id="settings-toggle" onclick="toggleSettings()"
+              aria-expanded="false" aria-controls="settings-body">
+        <span class="arrow" aria-hidden="true">▶</span> Keycode List (must match device)
       </button>
       <div class="settings-body" id="settings-body">
         <div class="settings-content">
-          <div class="settings-note">
-            One entry per line: <code style="color:var(--accent)">name | SYMBOL | Label</code>.
-            Must match the KEYCODES order in code.py exactly.
-          </div>
-          <textarea id="keycodes-editor"></textarea>
+          <p class="settings-note">
+            One entry per line: <code>name | SYMBOL | Label</code>.
+            Must match the KEYCODES order in code.py exactly. This simplified
+            list is flat — it doesn't represent submenu nesting, so while
+            connected, submenu child items will show a fallback glyph here
+            until you add matching top-level entries for them.
+          </p>
+          <textarea id="keycodes-editor"
+                    aria-label="Keycode list editor — one entry per line in format: name | SYMBOL | Label"></textarea>
           <div class="settings-actions">
             <button class="apply-btn" onclick="applyKeycodes()">Apply</button>
             <button class="reset-btn" onclick="resetKeycodes()">Reset to defaults</button>
@@ -865,17 +790,17 @@
   </div><!-- /#tab-display -->
 
   <!-- ── TAB 2: INPUT ── -->
-  <div class="tab-content" id="tab-input">
+  <div class="tab-content" id="tab-input" role="tabpanel" aria-labelledby="btn-input">
     <div class="input-main">
 
       <div class="last-key-panel" id="last-key-panel" onclick="focusInput()">
         <div class="last-key-header">Last Received Keypress</div>
         <div class="last-key-body">
-          <div class="last-key-symbol" id="last-key-symbol">–</div>
-          <div class="last-key-name"   id="last-key-name">Click here to capture keypresses</div>
+          <div class="last-key-symbol" id="last-key-symbol" aria-live="polite" aria-label="Last received key">–</div>
+          <div class="last-key-name" id="last-key-name">Click here to capture keypresses</div>
         </div>
         <div class="focus-hint" id="focus-hint" onclick="focusInput()">
-          <div class="focus-hint-icon">⌨</div>
+          <div class="focus-hint-icon" aria-hidden="true">⌨</div>
           <div class="focus-hint-text">Click to enable keyboard capture</div>
         </div>
       </div>
@@ -885,14 +810,17 @@
           <span>Text output</span>
           <button class="clear-btn" onclick="clearOutput()">Clear</button>
         </div>
-        <textarea id="text-output" readonly placeholder="Text typed via switch interface will appear here…"></textarea>
+        <textarea id="text-output" readonly
+                  placeholder="Text typed via switch interface will appear here…"
+                  aria-label="Text output from switch interface keypresses"></textarea>
       </div>
 
     </div>
   </div><!-- /#tab-input -->
 
   <!-- Hidden real input capture -->
-  <input id="hidden-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" aria-hidden="true">
+  <input id="hidden-input" type="text" autocomplete="off" autocorrect="off"
+         autocapitalize="none" spellcheck="false" aria-hidden="true" tabindex="-1">
   <div aria-live="polite" aria-atomic="true" class="sr-only" id="sr-announce"></div>
 
 </div><!-- /.app -->
@@ -915,7 +843,6 @@ const DEFAULT_KEYCODES = [
 
 let KEYCODES = [...DEFAULT_KEYCODES];
 
-// Keyboard key → display symbol / name for the Input tab
 const KEY_DISPLAY = {
   "ArrowRight":  { symbol: "→", label: "Right Arrow" },
   "ArrowLeft":   { symbol: "←", label: "Left Arrow"  },
@@ -958,6 +885,8 @@ function toggleTTS() {
   const btn  = document.getElementById('tts-btn');
   const icon = document.getElementById('tts-icon');
   btn.classList.toggle('on', ttsEnabled);
+  btn.setAttribute('aria-pressed', ttsEnabled ? 'true' : 'false');
+  btn.setAttribute('aria-label', `Text-to-speech feedback — ${ttsEnabled ? 'on' : 'off'}`);
   icon.textContent = ttsEnabled ? '🔊' : '🔇';
   if (ttsEnabled) speak('Text to speech on');
 }
@@ -974,7 +903,7 @@ function speak(text, priority) {
 }
 
 // ================================================================
-//  AUDIO BEEP (Web Audio API)
+//  AUDIO BEEP
 // ================================================================
 
 let audioCtx = null;
@@ -991,7 +920,7 @@ function playBeep() {
     const gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
-    osc.type      = 'sine';
+    osc.type = 'sine';
     osc.frequency.setValueAtTime(880, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.12);
     gain.gain.setValueAtTime(0.0, ctx.currentTime);
@@ -999,10 +928,9 @@ function playBeep() {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.2);
-  } catch (e) { /* AudioContext blocked until user gesture — silently ignore */ }
+  } catch (e) {}
 }
 
-// Scanning start chime — rising two-tone
 function playScanStart() {
   try {
     const ctx  = getAudioCtx();
@@ -1023,16 +951,8 @@ function playScanStart() {
 }
 
 // ================================================================
-//  SCANNING VISUAL STATE
+//  SCANNING STATE
 // ================================================================
-
-// Read the configured scan interval from the settings editor and
-// sync it to the CSS variable so the scan-bar animation matches.
-function getScanIntervalSecs() {
-  // Try to parse from the keycodes editor label (not available here),
-  // so we just use a sensible default of 1 s — matching code.py default.
-  return 1.0;
-}
 
 function setScanningState(active) {
   if (isScanning === active) return;
@@ -1040,15 +960,16 @@ function setScanningState(active) {
   const panel = document.getElementById('current-panel');
   const badge = document.getElementById('scan-badge');
   if (active) {
-    // Sync bar animation duration to scan interval
-    panel.style.setProperty('--scan-interval', getScanIntervalSecs() + 's');
+    panel.style.setProperty('--scan-interval', '1s');
     panel.classList.add('scanning');
     badge.classList.add('visible');
+    badge.removeAttribute('aria-hidden');
     playScanStart();
     speak('Scanning');
   } else {
     panel.classList.remove('scanning');
     badge.classList.remove('visible');
+    badge.setAttribute('aria-hidden', 'true');
   }
 }
 
@@ -1057,10 +978,15 @@ function setScanningState(active) {
 // ================================================================
 
 function switchTab(name) {
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => { t.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.remove('active');
+    b.setAttribute('aria-selected', 'false');
+  });
   document.getElementById(`tab-${name}`).classList.add('active');
-  document.getElementById(`btn-${name}`).classList.add('active');
+  const btn = document.getElementById(`btn-${name}`);
+  btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
 }
 
 // ================================================================
@@ -1071,8 +997,10 @@ const supportsSerial = 'serial' in navigator;
 
 if (!supportsSerial) {
   document.getElementById('no-serial-notice').style.display = 'block';
-  document.getElementById('connect-btn').disabled = true;
-  document.getElementById('connect-btn').style.opacity = '0.3';
+  const cb = document.getElementById('connect-btn');
+  cb.disabled = true;
+  cb.style.opacity = '0.35';
+  cb.setAttribute('aria-disabled', 'true');
 }
 
 function setStatus(state, label) {
@@ -1117,14 +1045,8 @@ async function connectSerial() {
 
 async function disconnectSerial() {
   reading = false;
-  if (serialReader) {
-    try { await serialReader.cancel(); } catch(_) {}
-    serialReader = null;
-  }
-  if (serialPort) {
-    try { await serialPort.close(); } catch(_) {}
-    serialPort = null;
-  }
+  if (serialReader) { try { await serialReader.cancel(); } catch(_) {} serialReader = null; }
+  if (serialPort)   { try { await serialPort.close(); }   catch(_) {} serialPort   = null; }
   setStatus('', 'Disconnected');
   addLog('Serial port closed', 'log-mode');
 }
@@ -1141,16 +1063,11 @@ async function readLoop() {
         const text = decoder.decode(value, { stream: true });
         lineBuffer += text;
         const lines = lineBuffer.split('\n');
-        lineBuffer = lines.pop(); // keep incomplete line
-        for (const line of lines) {
-          parseLine(line);
-        }
+        lineBuffer = lines.pop();
+        for (const line of lines) parseLine(line);
       }
     } catch (e) {
-      if (reading) {
-        setStatus('error', 'Read error');
-        addLog('Read error: ' + e.message, 'log-error');
-      }
+      if (reading) { setStatus('error', 'Read error'); addLog('Read error: ' + e.message, 'log-error'); }
     } finally {
       serialReader.releaseLock();
     }
@@ -1158,77 +1075,36 @@ async function readLoop() {
 }
 
 // ================================================================
-//  SERIAL LINE PARSER
+//  SERIAL PARSER
 // ================================================================
 
 function parseLine(raw) {
   const line = raw.trim();
   if (!line) return;
 
-  // Navigate event
   let m = line.match(/EVENT: Navigate → (.+)/);
-  if (m) {
-    setScanningState(false);
-    setCurrentKey(m[1].trim());
-    addLog(line, 'log-event');
-    return;
-  }
+  if (m) { setScanningState(false); setCurrentKey(m[1].trim()); addLog(line, 'log-event'); return; }
 
-  // Scan advance
   m = line.match(/SCAN: → (.+)/);
-  if (m) {
-    setScanningState(true);
-    setCurrentKey(m[1].trim());
-    addLog(line, 'log-scan');
-    return;
-  }
+  if (m) { setScanningState(true); setCurrentKey(m[1].trim()); addLog(line, 'log-scan'); return; }
 
-  // Hold → start scanning (before first advance tick)
-  if (/Hold threshold → start scanning/.test(line)) {
-    setScanningState(true);
-    addLog(line, 'log-scan');
-    return;
-  }
+  if (/Hold threshold → start scanning/.test(line)) { setScanningState(true); addLog(line, 'log-scan'); return; }
 
-  // Sent event
   m = line.match(/EVENT: Sent: (.+)/);
-  if (m) {
-    setScanningState(false);
-    flashSent();
-    playBeep();
-    addLog(line, 'log-event');
-    return;
-  }
+  if (m) { setScanningState(false); flashSent(); playBeep(); addLog(line, 'log-event'); return; }
 
-  // Short press select (single-switch, non-scan)
-  if (/Short press/.test(line) && /select/.test(line)) {
-    setScanningState(false);
-    addLog(line, 'log-event');
-    return;
-  }
+  m = line.match(/EVENT: Enter submenu -> (.+)/);
+  if (m) { setScanningState(false); addLog(line, 'log-event'); return; }
 
-  // Mode changes
-  if (/Two-Switch Mode/.test(line)) {
-    setMode('Two-Switch');
-    addLog(line, 'log-mode');
-    return;
-  }
-  if (/Single-Switch Mode/.test(line)) {
-    setMode('Single-Switch / Scanning');
-    addLog(line, 'log-mode');
-    return;
-  }
-  if (/MODE SELECT/.test(line)) {
-    setMode('Menu – Select Mode');
-    addLog(line, 'log-mode');
-    return;
-  }
+  if (/EVENT: Auto-exit submenu/.test(line))   { addLog(line, 'log-event'); return; }
+  if (/EVENT: Back -> parent menu/.test(line)) { addLog(line, 'log-event'); return; }
 
-  // BLE status
-  if (/BLE: Connected/.test(line))    { addLog(line, 'log-event'); return; }
-  if (/BLE: Disconnected/.test(line)) { addLog(line, 'log-error'); return; }
+  if (/Short press/.test(line) && /select/.test(line)) { setScanningState(false); addLog(line, 'log-event'); return; }
 
-  // Everything else — log quietly
+  if (/Two-Switch Mode/.test(line))   { setMode('Two-Switch');              addLog(line, 'log-mode'); return; }
+  if (/Single-Switch Mode/.test(line)){ setMode('Single-Switch / Scanning');addLog(line, 'log-mode'); return; }
+  if (/MODE SELECT/.test(line))       { setMode('Menu – Select Mode');      addLog(line, 'log-mode'); return; }
+
   addLog(line);
 }
 
@@ -1237,7 +1113,6 @@ function setCurrentKey(keyName) {
   if (idx !== -1) {
     currentIndex = idx;
     updateDisplay();
-    // TTS: read out the key label
     speak(KEYCODES[idx].label);
   } else {
     document.getElementById('current-symbol').textContent = keyName.slice(0, 3).toUpperCase();
@@ -1265,7 +1140,6 @@ function updateDisplay() {
   nxtSym.textContent  = next.symbol;
   nxtName.textContent = next.label;
 
-  // Remove placeholder styling
   curSym.classList.remove('placeholder-glyph');
   curName.classList.remove('placeholder-name');
   nxtSym.style.color  = '';
@@ -1278,10 +1152,12 @@ function flashSent() {
   const badge = document.getElementById('sent-badge');
   panel.classList.add('flash-sent');
   badge.classList.add('visible');
+  badge.removeAttribute('aria-hidden');
   if (sentFlashTimer) clearTimeout(sentFlashTimer);
   sentFlashTimer = setTimeout(() => {
     panel.classList.remove('flash-sent');
     badge.classList.remove('visible');
+    badge.setAttribute('aria-hidden', 'true');
   }, 600);
   announce('Sent!');
 }
@@ -1304,10 +1180,7 @@ function addLog(text, cls) {
   container.scrollTop = container.scrollHeight;
   logCount++;
   document.getElementById('log-count').textContent = `(${logCount} lines)`;
-  // Keep log trimmed
-  while (container.children.length > 300) {
-    container.removeChild(container.firstChild);
-  }
+  while (container.children.length > 300) container.removeChild(container.firstChild);
 }
 
 function toggleLog() {
@@ -1315,6 +1188,7 @@ function toggleLog() {
   const toggle = document.getElementById('log-toggle');
   const open   = body.classList.toggle('open');
   toggle.classList.toggle('open', open);
+  toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
 // ================================================================
@@ -1330,7 +1204,7 @@ function initKeycodeEditor() {
 }
 
 function applyKeycodes() {
-  const lines = document.getElementById('keycodes-editor').value.trim().split('\n');
+  const lines  = document.getElementById('keycodes-editor').value.trim().split('\n');
   const parsed = [];
   for (const line of lines) {
     const parts = line.split('|').map(s => s.trim());
@@ -1339,7 +1213,7 @@ function applyKeycodes() {
     }
   }
   if (parsed.length === 0) {
-    alert('No valid keycodes found. Format: name | SYMBOL | Label');
+    announce('Error: No valid keycodes found. Format: name | SYMBOL | Label');
     return;
   }
   KEYCODES = parsed;
@@ -1359,6 +1233,7 @@ function toggleSettings() {
   const toggle = document.getElementById('settings-toggle');
   const open   = body.classList.toggle('open');
   toggle.classList.toggle('open', open);
+  toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
 // ================================================================
@@ -1366,28 +1241,20 @@ function toggleSettings() {
 // ================================================================
 
 const hiddenInput = document.getElementById('hidden-input');
-let inputFocused  = false;
 
-function focusInput() {
-  hiddenInput.focus();
-}
+function focusInput() { hiddenInput.focus(); }
 
 hiddenInput.addEventListener('focus', () => {
-  inputFocused = true;
   document.getElementById('focus-hint').classList.add('hidden');
 });
-
 hiddenInput.addEventListener('blur', () => {
-  inputFocused = false;
   document.getElementById('focus-hint').classList.remove('hidden');
 });
 
 hiddenInput.addEventListener('keydown', (e) => {
   e.preventDefault();
-
   const symEl  = document.getElementById('last-key-symbol');
   const nameEl = document.getElementById('last-key-name');
-
   let symbol, label;
 
   if (KEY_DISPLAY[e.key]) {
@@ -1403,24 +1270,16 @@ hiddenInput.addEventListener('keydown', (e) => {
 
   symEl.textContent  = symbol;
   nameEl.textContent = label;
-
-  // Beep feedback
   playBeep();
 
-  // Flash animation
   symEl.classList.remove('flash');
-  void symEl.offsetWidth; // reflow
+  void symEl.offsetWidth;
   symEl.classList.add('flash');
   setTimeout(() => symEl.classList.remove('flash'), 180);
 
-  // Append to text output for printable chars
-  if (e.key === 'Enter') {
-    appendOutput('\n');
-  } else if (e.key === 'Backspace') {
-    deleteLastChar();
-  } else if (e.key.length === 1) {
-    appendOutput(e.key);
-  }
+  if (e.key === 'Enter') appendOutput('\n');
+  else if (e.key === 'Backspace') deleteLastChar();
+  else if (e.key.length === 1) appendOutput(e.key);
 
   announce(`Key received: ${label}`);
 });
@@ -1430,12 +1289,10 @@ function appendOutput(char) {
   ta.value += char;
   ta.scrollTop = ta.scrollHeight;
 }
-
 function deleteLastChar() {
   const ta = document.getElementById('text-output');
   ta.value = ta.value.slice(0, -1);
 }
-
 function clearOutput() {
   document.getElementById('text-output').value = '';
   document.getElementById('last-key-symbol').textContent = '–';
@@ -1459,15 +1316,40 @@ function announce(msg) {
 // ================================================================
 
 initKeycodeEditor();
-
-// Show initial placeholder display with first key
 updateDisplay();
 document.getElementById('current-symbol').classList.add('placeholder-glyph');
 document.getElementById('current-name').classList.add('placeholder-name');
-document.getElementById('current-name').textContent = 'Waiting for device…';
-document.getElementById('next-symbol').style.color  = 'var(--border-hi)';
-document.getElementById('next-name').style.color    = 'var(--border-hi)';
+document.getElementById('current-name').textContent  = 'Waiting for device…';
+document.getElementById('next-symbol').style.color   = 'var(--app-border-hi)';
+document.getElementById('next-name').style.color     = 'var(--app-border-hi)';
 
+// ── KEYBOARD EXIT (Escape → home page) ──
+(function() {
+  const TOAST_MS = 1800;
+  let toastTimer = null;
+
+  function showToast(msg) {
+    const t = document.getElementById('nav-toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('visible'), TOAST_MS);
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const tag = document.activeElement && document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        document.activeElement.blur();
+        showToast('Press Esc again to return to home');
+        return;
+      }
+      showToast('Returning to home…');
+      setTimeout(() => { window.location.href = 'index.html'; }, 350);
+    }
+  });
+})();
 </script>
 </body>
 </html>

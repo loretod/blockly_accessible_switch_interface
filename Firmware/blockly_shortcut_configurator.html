@@ -3,307 +3,713 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blockly Switch Interface Configurator</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<title>Shortcut Configurator — Blockly Accessible Switch Interface</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖲️</text></svg>">
+<meta name="description" content="Browser tool to configure keyboard shortcuts for the BASI device and generate config.py.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="basi-shared.css">
 <style>
+  /* ── CONFIGURATOR TOKENS (light theme) ── */
   :root {
-    --bg:        #f4f6fb;
-    --surface:   #eaecf4;
-    --card:      #ffffff;
-    --border:    #d0d5e8;
-    --border2:   #b8bfd6;
-    --accent:    #3d6bff;
-    --accent2:   #0099aa;
-    --warn:      #e03b3b;
-    --text:      #1a1f36;
-    --muted:     #7a82a6;
-    --label:     #4a517a;
-    --drag-over: rgba(61,107,255,0.07);
-    --shadow:    0 1px 3px rgba(30,40,90,0.08), 0 1px 2px rgba(30,40,90,0.05);
+    --cfg-bg:        #f4f6fb;
+    --cfg-surface:   #eaecf4;
+    --cfg-card:      #ffffff;
+    --cfg-border:    #cfd5eb;
+    --cfg-border2:   #b5bcd6;
+    --cfg-accent:    #1d4db5;   /* 6.3:1 on white */
+    --cfg-accent2:   #007a8a;   /* 5.6:1 on white */
+    --cfg-warn:      #b52020;   /* 5.5:1 on white */
+    --cfg-text:      #1a1f36;   /* 15:1 on white  */
+    --cfg-muted:     #5a6290;   /* 5.0:1 on white */
+    --cfg-label:     #3a4170;
+    --cfg-drag-over: rgba(29,77,181,0.07);
+    --cfg-shadow:    0 1px 3px rgba(30,40,90,0.09), 0 1px 2px rgba(30,40,90,0.05);
+    --cfg-submenu-bg:     #fdf1de;
+    --cfg-submenu-border: #96530c;  /* 5.1:1 on white */
+    --cfg-submenu-tint:   #ffe8c2;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'IBM Plex Mono', monospace;
-    background: var(--bg);
-    color: var(--text);
+    font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
+    background: var(--cfg-bg);
+    color: var(--cfg-text);
     min-height: 100vh;
-    padding: 2rem 1rem 4rem;
+    padding-bottom: 4rem;
+    /* override shared body overflow */
+    overflow: auto;
   }
 
-  /* ── HEADER ─────────────────────────────── */
-  header {
-    max-width: 860px;
-    margin: 0 auto 2rem;
-    border-left: 3px solid var(--accent);
-    padding-left: 1rem;
+  /* ── TOOL NAV overrides for this page ── */
+  .tool-nav-band .nav-links a[aria-current] {
+    background: var(--cfg-accent);
+    color: #fff;
   }
-  header h1 {
-    font-family: 'Space Mono', monospace;
-    font-size: clamp(1.1rem, 3vw, 1.6rem);
+
+  /* ── PAGE HEADER ── */
+  .cfg-header {
+    max-width: 1240px;
+    margin: 2rem auto 1.5rem;
+    padding: 0 1rem;
+    border-left: 4px solid var(--cfg-accent);
+    padding-left: 1.25rem;
+  }
+  .cfg-header h1 {
+    font-family: var(--ff-head);
+    font-size: clamp(1.3rem, 3vw, 1.85rem);
     letter-spacing: -0.02em;
-    color: var(--text);
+    color: var(--cfg-text);
   }
-  header p {
-    font-size: 0.77rem;
-    color: var(--muted);
-    margin-top: 0.3rem;
+  .cfg-header p {
+    font-size: var(--text-sm);
+    color: var(--cfg-muted);
+    margin-top: 0.4rem;
     line-height: 1.7;
   }
-  header a {
-    color: var(--accent);
-    text-decoration: none;
-    border-bottom: 1px solid rgba(61,107,255,0.3);
-    transition: border-color 0.15s;
+  .cfg-header a { color: var(--cfg-accent); }
+
+  /* ── COLLAPSIBLE PAGE INFO ── */
+  .cfg-info { margin-top: 0.5rem; }
+  .cfg-info summary {
+    cursor: pointer;
+    font-size: var(--text-sm);
+    color: var(--cfg-accent);
+    font-weight: 600;
+    padding: 0.4rem 0.1rem;
+    list-style: none;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
   }
-  header a:hover { border-color: var(--accent); }
+  .cfg-info summary::-webkit-details-marker { display: none; }
+  .cfg-info summary::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: 0.5rem;
+    transition: transform 0.15s;
+  }
+  .cfg-info[open] summary::before { transform: rotate(90deg); }
+  .cfg-info summary:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .cfg-info p {
+    font-size: var(--text-sm);
+    color: var(--cfg-muted);
+    line-height: 1.7;
+    margin: 0.7rem 0 0;
+  }
   .badge {
     display: inline-block;
-    font-size: 0.62rem;
-    padding: 2px 7px;
+    font-size: 0.75rem;
+    padding: 3px 9px;
     border-radius: 3px;
-    background: var(--accent);
+    background: var(--cfg-accent);
     color: #fff;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     vertical-align: middle;
-    margin-left: 0.4rem;
+    margin-left: 0.5rem;
+    font-family: var(--ff-mono);
   }
 
-  /* ── OS TOGGLE ───────────────────────────── */
-  .os-bar {
-    max-width: 860px;
+  /* ── UPLOAD EXISTING CONFIG ── */
+  .upload-bar {
+    max-width: 1240px;
     margin: 0 auto 1.5rem;
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    background: var(--cfg-card);
+    border: 1.5px solid var(--cfg-accent);
+    border-radius: 8px;
+    box-shadow: var(--cfg-shadow);
+    flex-wrap: wrap;
+  }
+  .upload-bar-label {
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--cfg-label);
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .upload-bar input[type="file"] {
+    font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
+    font-size: var(--text-sm);
+    color: var(--cfg-text);
+    min-height: 44px;
+    flex: 1;
+    min-width: 200px;
+  }
+  .upload-bar input[type="file"]::file-selector-button {
+    font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
+    font-weight: 600;
+    font-size: var(--text-sm);
+    background: var(--cfg-accent);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 0.5rem 1rem;
+    margin-right: 0.85rem;
+    cursor: pointer;
+    min-height: 38px;
+    transition: opacity 0.15s;
+  }
+  .upload-bar input[type="file"]::file-selector-button:hover { opacity: 0.85; }
+  .upload-bar input[type="file"]:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .upload-hint {
+    font-size: var(--text-xs);
+    color: var(--cfg-muted);
+    flex-basis: 100%;
+    line-height: 1.6;
+  }
+  #upload-status {
+    font-size: var(--text-sm);
+    flex-basis: 100%;
+    display: none;
+    line-height: 1.5;
+  }
+  #upload-status.ok  { color: #1a7a50; display: block; }
+  #upload-status.err { color: var(--cfg-warn); display: block; }
+
+  /* ── OS TOGGLE ── */
+  .os-bar {
     display: flex;
     align-items: center;
     gap: 1rem;
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: var(--cfg-card);
+    border: 1.5px solid var(--cfg-border);
     border-radius: 8px;
-    padding: 0.75rem 1.2rem;
-    box-shadow: var(--shadow);
+    padding: 0.85rem 1.25rem;
+    box-shadow: var(--cfg-shadow);
     flex-wrap: wrap;
   }
   .os-bar-label {
-    font-size: 0.7rem;
+    font-size: var(--text-xs);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--label);
+    color: var(--cfg-label);
     white-space: nowrap;
+    font-weight: 500;
   }
   .os-toggle {
     display: flex;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--cfg-surface);
+    border: 1.5px solid var(--cfg-border);
     border-radius: 6px;
     overflow: hidden;
   }
-  .os-toggle input[type="radio"] { display: none; }
+  .os-toggle input[type="radio"] {
+    /* Visually hidden but accessible */
+    position: absolute;
+    opacity: 0;
+    width: 1px; height: 1px;
+  }
   .os-toggle label {
-    padding: 0.4rem 1.1rem;
-    font-size: 0.75rem;
+    padding: 0.55rem 1.25rem;
+    font-size: var(--text-sm);
     cursor: pointer;
-    color: var(--muted);
+    color: var(--cfg-muted);
     transition: background 0.15s, color 0.15s;
     user-select: none;
     white-space: nowrap;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
   }
   .os-toggle input[type="radio"]:checked + label {
-    background: var(--accent);
+    background: var(--cfg-accent);
     color: #fff;
   }
-  .os-note {
-    font-size: 0.68rem;
-    color: var(--muted);
-    margin-left: auto;
+  .os-toggle input[type="radio"]:focus-visible + label {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+    z-index: 1;
   }
+  .os-note { font-size: var(--text-xs); color: var(--cfg-muted); margin-left: auto; }
 
-  /* ── LAYOUT ──────────────────────────────── */
-  .layout {
-    max-width: 860px;
+  /* ── LAYOUT ── */
+  .cfg-columns {
+    max-width: 1240px;
     margin: 0 auto;
+    padding: 0 1rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 1.6rem;
+    align-items: start;
+  }
+  .cfg-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.6rem;
+    min-width: 0;
+  }
+  .cfg-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    position: sticky;
+    top: 1rem;
+    align-self: start;
+  }
+  .sidebar-lead {
+    font-size: var(--text-sm);
+    color: var(--cfg-muted);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0 0.2rem;
+  }
+  .sidebar-lead strong { color: var(--cfg-accent); }
+
+  .step-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+  .step-heading {
+    font-family: var(--ff-head);
+    font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+    color: var(--cfg-text);
+    display: flex;
+    align-items: baseline;
+    gap: 0.65rem;
+    margin: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--cfg-border);
+  }
+  .step-num {
+    display: inline-block;
+    background: var(--cfg-accent);
+    color: #fff;
+    font-family: var(--ff-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.05em;
+    padding: 3px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .step-grid-2col {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1.1rem;
   }
-  @media (max-width: 650px) {
-    .layout { grid-template-columns: 1fr; }
-    .os-note { display: none; }
+
+  /* Brief highlight used to draw the eye (and screen-reader focus) to
+     wherever a shortcut/preset you just chose to add will actually land. */
+  .highlight-target { animation: panelFlash 1.5s ease; }
+  @keyframes panelFlash {
+    0%   { box-shadow: 0 0 0 4px rgba(29,77,181,0.35); }
+    100% { box-shadow: var(--cfg-shadow); }
   }
 
-  /* ── PANEL / CARD ────────────────────────── */
+  @media (max-width: 980px) {
+    .cfg-columns { grid-template-columns: 1fr; }
+    .cfg-sidebar { position: static; }
+  }
+  @media (max-width: 660px) {
+    .step-grid-2col { grid-template-columns: 1fr; }
+    .os-note { display: none; }
+  }
+  @media (max-width: 560px) {
+    .keycode-item, .list-labels {
+      grid-template-columns: 40px 1fr 56px auto;
+    }
+    .keycode-item .nest-select { grid-column: 1 / -1; margin-top: 4px; width: 100%; }
+    .list-labels span:nth-child(4) { display: none; }
+    .child-list, .submenu-meta { margin-left: 12px; }
+  }
+
+  /* ── PANEL / CARD ── */
   .panel {
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: var(--cfg-card);
+    border: 1.5px solid var(--cfg-border);
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: var(--shadow);
+    box-shadow: var(--cfg-shadow);
   }
   .panel-header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0.55rem 1rem;
+    background: var(--cfg-surface);
+    border-bottom: 1.5px solid var(--cfg-border);
+    padding: 0.65rem 1.1rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.67rem;
+    font-size: var(--text-xs);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--label);
+    color: var(--cfg-label);
     font-weight: 600;
   }
   .panel-header .dot {
-    width: 7px; height: 7px;
+    width: 8px; height: 8px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--cfg-accent);
     flex-shrink: 0;
   }
-  .panel-body { padding: 1rem; }
+  .panel-body { padding: 1.1rem; }
 
-  /* ── TIMING INPUTS ───────────────────────── */
-  .timing-grid { display: grid; gap: 0.7rem; }
-  .field-row { display: flex; flex-direction: column; gap: 0.25rem; }
+  /* ── TIMING INPUTS ── */
+  .timing-grid { display: grid; gap: 0.8rem; }
+  .field-row { display: flex; flex-direction: column; gap: 0.3rem; }
   .field-row label {
-    font-size: 0.66rem;
-    color: var(--label);
+    font-size: var(--text-xs);
+    color: var(--cfg-label);
     text-transform: uppercase;
     letter-spacing: 0.07em;
+    font-weight: 500;
   }
   .field-row input[type="number"] {
     width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--cfg-surface);
+    border: 1.5px solid var(--cfg-border);
     border-radius: 5px;
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.85rem;
-    padding: 0.42rem 0.7rem;
+    color: var(--cfg-text);
+    font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
+    font-size: var(--text-base);
+    padding: 0.55rem 0.8rem;
     transition: border-color 0.15s, box-shadow 0.15s;
     -moz-appearance: textfield;
+    min-height: 48px;
   }
   .field-row input[type="number"]:focus {
     outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(61,107,255,0.1);
+    border-color: var(--cfg-accent);
+    box-shadow: 0 0 0 3px rgba(29,77,181,0.12);
   }
   .field-row input[type="number"]::-webkit-inner-spin-button,
   .field-row input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
 
-  /* ── KEYCODE LIST ────────────────────────── */
+  /* ── KEYCODE LIST ── */
   .full-width { grid-column: 1 / -1; }
 
   #keycode-list {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.45rem;
     min-height: 50px;
   }
 
+  /*
+   * Grid columns (top-level rows):
+   *   move-btns | key label | symbol | nest-to-submenu | delete
+   *   44px      | 1fr       | 72px   | 110px           | auto
+   */
   .keycode-item {
     display: grid;
-    grid-template-columns: 22px 1fr 68px 30px;
+    grid-template-columns: 44px 1fr 72px 110px auto;
     align-items: center;
-    gap: 0.4rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    gap: 0.45rem;
+    background: var(--cfg-surface);
+    border: 1.5px solid var(--cfg-border);
     border-radius: 6px;
-    padding: 0.4rem 0.5rem;
-    cursor: grab;
+    padding: 0.4rem 0.6rem;
     transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-    user-select: none;
   }
   .keycode-item:hover {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(61,107,255,0.08);
+    border-color: var(--cfg-accent);
+    box-shadow: 0 0 0 2px rgba(29,77,181,0.1);
   }
-  .keycode-item.dragging { opacity: 0.4; cursor: grabbing; }
-  .keycode-item.drag-over {
-    background: var(--drag-over);
-    border-color: var(--accent);
+  /* Highlight the row that was just moved — brief flash */
+  .keycode-item.just-moved {
+    border-color: var(--cfg-accent);
+    background: rgba(29,77,181,0.07);
   }
-  .keycode-item.is-custom {
-    border-left: 3px solid var(--accent2);
+  .keycode-item.is-custom { border-left: 3px solid var(--cfg-accent2); }
+
+  /* ── SUBMENU ENTRY POINT — color background + thicker outline cue ── */
+  .keycode-item.is-submenu {
+    background: var(--cfg-submenu-bg);
+    border: 3px solid var(--cfg-submenu-border);
+    padding: 0.4rem 0.6rem 0.4rem calc(0.6rem - 1.5px); /* keep inner content aligned */
+  }
+  .keycode-item.is-submenu:hover { border-color: var(--cfg-submenu-border); }
+  .submenu-tag {
+    display: block;
+    font-size: var(--text-xs);
+    color: var(--cfg-submenu-border);
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    margin-top: 1px;
   }
 
-  .drag-handle {
-    color: var(--muted);
-    font-size: 1rem;
-    cursor: grab;
-    text-align: center;
+  /* ── SUBMENU META BAR (auto-exit toggle, expand/collapse, add child) ── */
+  .submenu-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 0.3rem 0 0.1rem 44px;
+    padding: 0.45rem 0.75rem;
+    background: var(--cfg-surface);
+    border: 1.5px dashed var(--cfg-submenu-border);
+    border-radius: 6px;
+    font-size: var(--text-xs);
+  }
+  .submenu-meta .expand-toggle {
+    background: none;
+    border: none;
+    color: var(--cfg-submenu-border);
+    font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 2px;
+    min-height: 32px;
+  }
+  .submenu-meta label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--cfg-label);
+    cursor: pointer;
+  }
+  .submenu-meta .add-child-btn {
+    margin-left: auto;
+    background: none;
+    border: 1.5px solid var(--cfg-border2);
+    border-radius: 5px;
+    color: var(--cfg-accent);
+    font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+    font-size: var(--text-xs);
+    padding: 5px 10px;
+    cursor: pointer;
+    min-height: 34px;
+  }
+  .submenu-meta .add-child-btn:hover {
+    background: var(--cfg-accent); color: #fff; border-color: var(--cfg-accent);
+  }
+
+  /* ── CHILD (NESTED) LIST ── */
+  .child-list {
+    margin: 0 0 0.5rem 44px;
+    padding-left: 0.85rem;
+    border-left: 3px dotted var(--cfg-submenu-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .keycode-item.child-item {
+    grid-template-columns: 36px 1fr 60px auto auto;
+    background: var(--cfg-card);
+  }
+  .child-empty-note {
+    font-size: var(--text-xs);
+    color: var(--cfg-muted);
+    margin: 0.1rem 0 0.3rem;
+  }
+
+  /* ── "MOVE TO SUBMENU" NEST SELECT ── */
+  .nest-select {
+    background: var(--cfg-card);
+    border: 1.5px solid var(--cfg-border);
+    border-radius: 5px;
+    color: var(--cfg-text);
+    font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+    font-size: var(--text-xs);
+    padding: 0.35rem 0.3rem;
+    width: 100%;
+    min-height: 44px;
+  }
+  .nest-select:focus {
+    outline: none;
+    border-color: var(--cfg-accent);
+    box-shadow: 0 0 0 3px rgba(29,77,181,0.1);
+  }
+
+  /* ── ADD OPTIONS (submenu checkboxes near the add buttons) ── */
+  .add-options {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    margin-top: 0.7rem;
+    font-size: var(--text-xs);
+  }
+  .add-options label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--cfg-label);
+    cursor: pointer;
+  }
+  .add-options input[type="checkbox"] { width: 16px; height: 16px; }
+
+  /* ── CHILD-ADD MODE BANNER ── */
+  .child-add-banner {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.7rem;
+    background: var(--cfg-submenu-bg);
+    border: 1.5px solid var(--cfg-submenu-border);
+    border-radius: 6px;
+    padding: 0.55rem 0.85rem;
+    font-size: var(--text-sm);
+    margin-top: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .child-add-banner button {
+    background: var(--cfg-submenu-border);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    min-height: 38px;
+    font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+  }
+
+  /* ── QUICK-ADD SUBMENU PRESETS ── */
+  .quick-add-row { display: flex; gap: 0.7rem; flex-wrap: wrap; margin-top: 0.5rem; }
+  .quick-add-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    background: var(--cfg-submenu-bg);
+    border: 1.5px dashed var(--cfg-submenu-border);
+    border-radius: 6px;
+    padding: 0.6rem 0.85rem;
+    cursor: pointer;
+    flex: 1;
+    min-width: 220px;
+    color: var(--cfg-text);
+    font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+    text-align: left;
+    transition: background 0.15s;
+    min-height: 56px;
+  }
+  .quick-add-btn:hover { background: var(--cfg-submenu-tint); }
+  .quick-add-btn b { font-size: var(--text-sm); }
+  .quick-add-btn span { font-size: var(--text-xs); color: var(--cfg-muted); }
+
+  /* ── MOVE BUTTON STACK ── */
+  .move-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .move-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 26px;
+    min-height: unset;   /* override global .icon-btn min-height */
+    background: var(--cfg-card);
+    border: 1.5px solid var(--cfg-border);
+    border-radius: 4px;
+    color: var(--cfg-muted);
+    font-size: 0.75rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.1s;
+    /* Ensure total tappable area meets 44px target by padding the stack container */
+    padding: 0;
+  }
+  .move-btn:hover:not(:disabled) {
+    background: var(--cfg-accent);
+    border-color: var(--cfg-accent);
+    color: #fff;
+  }
+  .move-btn:active:not(:disabled) { transform: scale(0.93); }
+  .move-btn:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .move-btn:disabled {
+    opacity: 0.2;
+    cursor: default;
+    pointer-events: none;
   }
 
   .key-select, .key-text-input {
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: var(--cfg-card);
+    border: 1.5px solid var(--cfg-border);
     border-radius: 5px;
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.76rem;
-    padding: 0.3rem 0.4rem;
+    color: var(--cfg-text);
+    font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+    font-size: var(--text-sm);
+    padding: 0.4rem 0.5rem;
     width: 100%;
     transition: border-color 0.15s;
+    min-height: 44px;
   }
   .key-select:focus, .key-text-input:focus {
     outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(61,107,255,0.1);
+    border-color: var(--cfg-accent);
+    box-shadow: 0 0 0 3px rgba(29,77,181,0.1);
   }
 
   .symbol-input {
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: var(--cfg-card);
+    border: 1.5px solid var(--cfg-border);
     border-radius: 5px;
-    color: var(--accent2);
-    font-family: 'Space Mono', monospace;
-    font-size: 0.8rem;
-    padding: 0.3rem 0.4rem;
+    color: var(--cfg-accent2);
+    font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
+    font-weight: 700;
+    font-size: var(--text-sm);
+    padding: 0.4rem 0.5rem;
     width: 100%;
     text-align: center;
     transition: border-color 0.15s;
+    min-height: 44px;
   }
   .symbol-input:focus {
     outline: none;
-    border-color: var(--accent2);
-    box-shadow: 0 0 0 3px rgba(0,153,170,0.1);
+    border-color: var(--cfg-accent2);
+    box-shadow: 0 0 0 3px rgba(0,122,138,0.12);
   }
 
   .icon-btn {
     background: none;
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--cfg-border);
     border-radius: 5px;
-    color: var(--muted);
-    font-size: 0.85rem;
-    width: 28px; height: 28px;
+    color: var(--cfg-muted);
+    font-size: 0.9rem;
+    width: 32px; height: 32px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     transition: border-color 0.15s, color 0.15s;
     flex-shrink: 0;
+    min-width: 44px; min-height: 44px;
+    width: auto; height: auto;
+    padding: 0.35rem 0.7rem;
   }
-  .icon-btn:hover { border-color: var(--warn); color: var(--warn); }
+  .icon-btn:hover { border-color: var(--cfg-warn); color: var(--cfg-warn); }
 
-  /* ── COLUMN LABELS ───────────────────────── */
+  /* ── COLUMN LABELS ── */
   .list-labels {
     display: grid;
-    grid-template-columns: 22px 1fr 68px 30px;
-    gap: 0.4rem;
-    padding: 0 0.5rem;
-    margin-bottom: 0.3rem;
+    grid-template-columns: 44px 1fr 72px 110px auto;
+    gap: 0.45rem;
+    padding: 0 0.6rem;
+    margin-bottom: 0.4rem;
   }
   .list-labels span {
-    font-size: 0.58rem;
+    font-size: var(--text-xs);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--muted);
+    color: var(--cfg-muted);
+    font-weight: 500;
   }
   .list-labels span:nth-child(3) { text-align: center; }
 
-  /* ── ADD BUTTONS ─────────────────────────── */
+  /* ── ADD BUTTONS ── */
   .add-row {
     display: flex;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    gap: 0.6rem;
+    margin-top: 0.6rem;
     flex-wrap: wrap;
   }
   .add-btn {
@@ -312,364 +718,870 @@
     justify-content: center;
     gap: 0.4rem;
     background: none;
-    border: 1px dashed var(--border2);
+    border: 1.5px dashed var(--cfg-border2);
     border-radius: 6px;
-    color: var(--muted);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.71rem;
-    padding: 0.42rem 0.7rem;
+    color: var(--cfg-muted);
+    font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+    font-size: var(--text-sm);
+    padding: 0.6rem 0.9rem;
     cursor: pointer;
     flex: 1;
     transition: border-color 0.15s, color 0.15s, background 0.15s;
+    min-height: 48px;
   }
   .add-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: rgba(61,107,255,0.04);
+    border-color: var(--cfg-accent);
+    color: var(--cfg-accent);
+    background: rgba(29,77,181,0.04);
   }
   .add-btn.custom:hover {
-    border-color: var(--accent2);
-    color: var(--accent2);
-    background: rgba(0,153,170,0.04);
+    border-color: var(--cfg-accent2);
+    color: var(--cfg-accent2);
+    background: rgba(0,122,138,0.04);
   }
 
-  /* ── CUSTOM INPUT SECTION ────────────────── */
+  /* ── CUSTOM INPUT SECTION ── */
   .custom-panel { grid-column: 1 / -1; }
   .custom-form {
     display: grid;
-    grid-template-columns: 1fr 1fr 80px auto;
-    gap: 0.6rem;
+    grid-template-columns: 1fr 1fr 88px auto;
+    gap: 0.7rem;
     align-items: end;
   }
   @media (max-width: 600px) {
     .custom-form { grid-template-columns: 1fr 1fr; }
   }
   .custom-help {
-    font-size: 0.65rem;
-    color: var(--muted);
-    margin-top: 0.6rem;
-    line-height: 1.6;
-    padding: 0.5rem 0.75rem;
-    background: var(--surface);
+    font-size: var(--text-xs);
+    color: var(--cfg-muted);
+    margin-top: 0.7rem;
+    line-height: 1.7;
+    padding: 0.6rem 0.85rem;
+    background: var(--cfg-surface);
     border-radius: 5px;
-    border-left: 2px solid var(--accent2);
-  }
-  .custom-help code {
-    background: var(--border);
-    padding: 1px 4px;
-    border-radius: 2px;
-    font-size: 0.62rem;
-    color: var(--text);
+    border-left: 3px solid var(--cfg-accent2);
   }
   .add-custom-btn {
-    background: var(--accent2);
+    background: var(--cfg-accent2);
     border: none;
     border-radius: 6px;
     color: #fff;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.75rem;
-    padding: 0.4rem 0.9rem;
+    font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+    font-size: var(--text-sm);
+    padding: 0.55rem 1.1rem;
     cursor: pointer;
     white-space: nowrap;
     transition: opacity 0.15s;
-    height: 32px;
     align-self: end;
+    min-height: 48px;
   }
   .add-custom-btn:hover { opacity: 0.85; }
 
-  /* ── REFERENCE TABLE ─────────────────────── */
-  .ref-wrap { max-height: 240px; overflow-y: auto; }
+  /* ── REFERENCE TABLE ── */
+  .ref-wrap { max-height: 260px; overflow-y: auto; }
   .ref-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.72rem;
+    font-size: var(--text-sm);
   }
   .ref-table th {
-    background: var(--surface);
-    color: var(--label);
+    background: var(--cfg-surface);
+    color: var(--cfg-label);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    font-size: 0.6rem;
-    padding: 0.38rem 0.6rem;
+    font-size: var(--text-xs);
+    padding: 0.5rem 0.75rem;
     text-align: left;
-    border-bottom: 2px solid var(--border);
+    border-bottom: 2px solid var(--cfg-border);
     position: sticky;
     top: 0;
+    font-weight: 600;
   }
   .ref-table td {
-    padding: 0.32rem 0.6rem;
-    border-bottom: 1px solid var(--border);
-    color: var(--text);
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid var(--cfg-border);
+    color: var(--cfg-text);
+    line-height: 1.5;
   }
-  .ref-table tr:hover td { background: var(--surface); }
+  .ref-table tr:hover td { background: var(--cfg-surface); }
   .ref-table tr:last-child td { border-bottom: none; }
-  .ref-table td:first-child { color: var(--muted); }
+  .ref-table td:first-child { color: var(--cfg-muted); }
   .add-ref-btn {
     background: none;
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--cfg-border);
     border-radius: 4px;
-    color: var(--accent);
-    font-size: 0.63rem;
-    padding: 2px 8px;
+    color: var(--cfg-accent);
+    font-size: var(--text-xs);
+    padding: 4px 12px;
     cursor: pointer;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: "Atkinson Hyperlegible", Arial, sans-serif;
     transition: background 0.15s, color 0.15s;
+    min-height: 36px;
   }
   .add-ref-btn:hover {
-    background: var(--accent);
+    background: var(--cfg-accent);
     color: #fff;
-    border-color: var(--accent);
+    border-color: var(--cfg-accent);
   }
 
-  /* ── GENERATE / OUTPUT ───────────────────── */
+  /* ── GENERATE / OUTPUT ── */
   .generate-row {
     grid-column: 1 / -1;
     display: flex;
-    gap: 0.7rem;
+    gap: 0.8rem;
     align-items: center;
     flex-wrap: wrap;
   }
   .gen-btn {
-    background: var(--accent);
+    background: var(--cfg-accent);
     border: none;
     border-radius: 6px;
     color: #fff;
-    font-family: 'Space Mono', monospace;
-    font-size: 0.78rem;
-    padding: 0.6rem 1.3rem;
+    font-family: var(--ff-head);
+    font-weight: 700;
+    font-size: var(--text-base);
+    padding: 0.75rem 1.5rem;
     cursor: pointer;
     letter-spacing: 0.03em;
     transition: opacity 0.15s, transform 0.1s;
-    box-shadow: 0 2px 6px rgba(61,107,255,0.25);
+    box-shadow: 0 2px 8px rgba(29,77,181,0.28);
+    min-height: 52px;
   }
-  .gen-btn:hover { opacity: 0.88; }
+  .gen-btn:hover  { opacity: 0.88; }
   .gen-btn:active { transform: scale(0.97); }
 
   .dl-btn {
-    background: var(--card);
-    border: 1px solid var(--accent);
+    background: var(--cfg-card);
+    border: 2px solid var(--cfg-accent);
     border-radius: 6px;
-    color: var(--accent);
-    font-family: 'Space Mono', monospace;
-    font-size: 0.78rem;
-    padding: 0.6rem 1.3rem;
+    color: var(--cfg-accent);
+    font-family: var(--ff-head);
+    font-weight: 700;
+    font-size: var(--text-base);
+    padding: 0.75rem 1.5rem;
     cursor: pointer;
     letter-spacing: 0.03em;
     transition: background 0.15s, color 0.15s;
     display: none;
+    min-height: 52px;
   }
-  .dl-btn:hover { background: var(--accent); color: #fff; }
-  .dl-btn.visible { display: inline-block; }
+  .dl-btn:hover { background: var(--cfg-accent); color: #fff; }
+  .dl-btn.visible { display: inline-flex; align-items: center; }
 
   .output-panel { grid-column: 1 / -1; }
   #output-code {
     width: 100%;
-    height: 340px;
+    height: 360px;
     background: #1a1e2b;
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--cfg-border);
     border-radius: 6px;
     color: #a8d8a0;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.74rem;
-    padding: 1rem;
+    font-family: "Atkinson Hyperlegible", Arial, sans-serif;
+    font-size: var(--text-sm);
+    padding: 1.1rem;
     resize: vertical;
-    line-height: 1.65;
+    line-height: 1.75;
     white-space: pre;
     overflow: auto;
     display: none;
   }
   #output-code.visible { display: block; }
 
-  /* ── STATUS ──────────────────────────────── */
-  #status { font-size: 0.68rem; color: var(--muted); align-self: center; display: none; }
-  #status.ok  { color: #1a9e6a; display: inline; }
-  #status.err { color: var(--warn); display: inline; }
+  /* ── STATUS ── */
+  #status { font-size: var(--text-sm); color: var(--cfg-muted); align-self: center; display: none; }
+  #status.ok  { color: #1a7a50; display: inline; }
+  #status.err { color: var(--cfg-warn); display: inline; }
 
-  .idx { font-size: 0.58rem; color: var(--muted); text-align: center; }
-  .section-divider { grid-column: 1/-1; border: none; border-top: 1px solid var(--border); margin: 0.2rem 0; }
+  .idx { font-size: var(--text-xs); color: var(--cfg-muted); text-align: center; }
+  .section-divider { grid-column: 1/-1; border: none; border-top: 1.5px solid var(--cfg-border); margin: 0.3rem 0; }
+
+  /* ── MODE 0 PANEL ── */
+  .mode0-panel { grid-column: 1 / -1; }
+  .mode0-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 680px) { .mode0-grid { grid-template-columns: 1fr; } }
+  .mode0-switch-card {
+    border: 1.5px solid var(--cfg-border);
+    border-radius: 6px;
+    padding: 1rem 1.1rem;
+    background: var(--cfg-surface);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .mode0-switch-title {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--cfg-text);
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .mode0-pin-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: #007060;
+    color: #fff;
+    letter-spacing: 0.06em;
+    font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
+  }
+  .mode0-type-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .mode0-type-row label { font-size: var(--text-xs); color: var(--cfg-label); min-width: 70px; }
+  .mode0-type-row select, .mode0-type-row input { font-size: var(--text-xs); padding: 4px 8px; }
+  .mode0-subfields { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.2rem; }
+  .mode0-note {
+    font-size: var(--text-xs);
+    color: var(--cfg-muted);
+    line-height: 1.6;
+    grid-column: 1 / -1;
+    padding: 0.7rem 1rem;
+    background: var(--cfg-surface);
+    border: 1px solid var(--cfg-border);
+    border-radius: 4px;
+  }
+  .mode0-note code { background: var(--cfg-card); padding: 1px 5px; border-radius: 2px; font-size: 0.85em; }
+
+  /* ── "NO KEYSTROKE" FOLDER OPTION (custom builder) ── */
+  .folder-row { display: none; }
+  .folder-row.visible { display: flex; }
 </style>
 </head>
 <body>
+<a href="#config-main" class="skip-link">Skip to configurator</a>
 
-<header>
-  <h1>Switch Interface Configurator <span class="badge">config.py</span></h1>
-  <p>
-    Blockly keyboard accessibility · Adafruit Feather ESP32-S3 Rev TFT · CircuitPython HID<br>
-    <a href="https://github.com/loretod/blockly_accessible_switch_interface" target="_blank" rel="noopener">
-      ⎋ github.com/loretod/blockly_accessible_switch_interface
-    </a>
-  </p>
+<header role="banner">
+  <nav class="tool-nav-band" aria-label="Site navigation">
+    <a href="index.html" class="nav-logo" aria-label="Blockly Accessible Switch Interface – home">BASI<span>.</span></a>
+    <ul class="nav-links" role="list">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="build.html">Build</a></li>
+      <li><a href="switch-interface-web-display.html">Display</a></li>
+      <li><a href="blockly_shortcut_configurator.html" aria-current="page">Configure</a></li>
+    </ul>
+    <a href="https://github.com/loretod/blockly_accessible_switch_interface"
+       class="nav-exit-btn" target="_blank" rel="noopener"
+       aria-label="View source on GitHub (opens in new tab)">↗ GitHub</a>
+  </nav>
 </header>
 
-<!-- ── OS SELECTOR ── -->
-<div class="os-bar">
-  <span class="os-bar-label">Target OS</span>
-  <div class="os-toggle">
-    <input type="radio" name="os" id="os-mac" value="mac" checked>
-    <label for="os-mac">🍎 macOS</label>
-    <input type="radio" name="os" id="os-win" value="windows">
-    <label for="os-win">🪟 Windows</label>
-  </div>
-  <span class="os-note">Cmd ↔ Ctrl swaps automatically when you switch OS</span>
-</div>
+<main id="config-main">
 
-<div class="layout">
-
-  <!-- ── TIMING ── -->
-  <div class="panel">
-    <div class="panel-header"><span class="dot"></span>Single-Switch Timing</div>
-    <div class="panel-body timing-grid">
-      <div class="field-row">
-        <label>Hold to scan (secs)</label>
-        <input type="number" id="hold_to_scan" value="2.0" step="0.1" min="0.1">
-      </div>
-      <div class="field-row">
-        <label>Scan interval (secs)</label>
-        <input type="number" id="scan_interval" value="1.0" step="0.1" min="0.1">
-      </div>
-      <div class="field-row">
-        <label>Max short press (secs)</label>
-        <input type="number" id="max_short_press" value="0.5" step="0.05" min="0.05">
-      </div>
-    </div>
+  <div class="cfg-header">
+    <h1>Switch Interface Configurator <span class="badge">config.py</span></h1>
+    <p>Use the configurator below to build a custom set of keyboard shortcuts for your BASI device and generate a config.py file.</p>
+    <details class="cfg-info">
+      <summary>About this tool &amp; how to use it</summary>
+      <p>Start by selecting your target OS — this ensures the correct modifier keys (Cmd vs Ctrl) are used and swapped automatically if you change your selection later.</p>
+      <p><strong>Mode 0 (Direct Switch)</strong> maps each external switch straight to one action with no scanning — configure it in its own panel below. <strong>Modes 1 &amp; 2</strong> (single- and two-switch scanning) share the shortcut list you build further down.</p>
+      <p>Use the reference table to add common shortcuts, or build your own custom combos with the builder. You can reorder active shortcuts with the ▲ ▼ buttons</p>
+      <p>Any shortcut can become a <strong>submenu entry point</strong> — selecting it on the device opens a shorter list of related items instead of scanning through everything. Submenu entries stand out in the active list with an amber background and a thicker outline. Nest an existing shortcut into a submenu with its "Submenu" dropdown, or drag it onto a submenu row.</p>
+      <p>Generate a file preview which can then be downloaded and flashed to your device.</p>
+    </details>
   </div>
 
-  <div class="panel">
-    <div class="panel-header"><span class="dot"></span>Two-Switch Timing</div>
-    <div class="panel-body timing-grid">
-      <div class="field-row">
-        <label>Debounce delay (secs)</label>
-        <input type="number" id="debounce" value="0.1" step="0.01" min="0.01">
-      </div>
-    </div>
+  <!-- ── LOAD EXISTING CONFIG ── -->
+  <div class="upload-bar" role="group" aria-labelledby="upload-bar-label">
+    <span class="upload-bar-label" id="upload-bar-label">📤 Load Existing Config</span>
+    <input type="file" id="config-upload" accept=".py,text/x-python,text/plain"
+           aria-describedby="upload-hint">
+    <span id="upload-hint" class="upload-hint">
+      Already have a config.py generated by this tool? Upload it to load its settings and shortcuts back into the configurator so you can edit them, instead of starting over.
+    </span>
+    <span id="upload-status" role="status" aria-live="polite"></span>
   </div>
 
-  <!-- ── BLOCKLY REFERENCE TABLE ── -->
-  <div class="panel full-width">
-    <div class="panel-header"><span class="dot"></span>Blockly Shortcut Reference — click + add to include in list</div>
-    <div class="ref-wrap">
-      <table class="ref-table">
-        <thead>
-          <tr>
-            <th>Function</th>
-            <th id="ref-key-col">Mac Key</th>
-            <th style="width:60px"></th>
-          </tr>
-        </thead>
-        <tbody id="ref-body"></tbody>
-      </table>
-    </div>
-  </div>
+  <div class="cfg-columns">
+    <div class="cfg-main">
 
-  <!-- ── ACTIVE SHORTCUTS ── -->
-  <div class="panel full-width">
-    <div class="panel-header"><span class="dot"></span>Active Shortcuts — drag to reorder</div>
-    <div class="panel-body">
-      <div class="list-labels">
-        <span>#</span><span>Key / Label</span><span style="text-align:center">Symbol</span><span></span>
-      </div>
-      <div id="keycode-list"></div>
-      <div class="add-row">
-        <button class="add-btn" onclick="addPresetShortcut()">＋ add from presets</button>
-        <button class="add-btn custom" onclick="toggleCustomForm()">＋ custom keypress</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── CUSTOM BUILDER ── -->
-  <div class="panel custom-panel" id="custom-panel" style="display:none">
-    <div class="panel-header"><span class="dot" style="background:var(--accent2)"></span>Custom Keypress Builder</div>
-    <div class="panel-body">
-      <div class="custom-form">
-        <div class="field-row">
-          <label>Modifier(s)</label>
-          <select id="custom-mod" class="key-select">
-            <option value="">— none —</option>
-            <option value="LEFT_CONTROL">Ctrl</option>
-            <option value="LEFT_SHIFT">Shift</option>
-            <option value="LEFT_ALT">Alt</option>
-            <option value="LEFT_GUI">Cmd / Win</option>
-            <option value="LEFT_CONTROL,LEFT_SHIFT">Ctrl + Shift</option>
-            <option value="LEFT_CONTROL,LEFT_ALT">Ctrl + Alt</option>
-            <option value="LEFT_GUI,LEFT_SHIFT">Cmd + Shift</option>
-            <option value="LEFT_SHIFT,LEFT_ALT">Shift + Alt</option>
-          </select>
+      <!-- ── STEP 1: OS SELECTOR ── -->
+      <section class="step-section" aria-labelledby="step1-heading">
+        <h2 class="step-heading" id="step1-heading"><span class="step-num">Step 1</span> Select Target OS</h2>
+        <div class="os-bar" role="group" aria-labelledby="os-bar-label">
+          <span class="os-bar-label" id="os-bar-label">Target OS</span>
+          <div class="os-toggle">
+            <input type="radio" name="os" id="os-mac" value="mac" checked>
+            <label for="os-mac">🍎 macOS</label>
+            <input type="radio" name="os" id="os-win" value="windows">
+            <label for="os-win">🪟 Windows</label>
+          </div>
+          <span class="os-note">Cmd ↔ Ctrl swaps automatically when you switch OS</span>
         </div>
-        <div class="field-row">
-          <label>Base Key</label>
-          <select id="custom-key" class="key-select">
-            <option value="TAB">Tab</option>
-            <option value="ENTER">Enter</option>
-            <option value="SPACE">Space</option>
-            <option value="BACKSPACE">Backspace</option>
-            <option value="DELETE">Delete</option>
-            <option value="ESCAPE">Escape</option>
-            <option value="RIGHT_ARROW">→ Arrow Right</option>
-            <option value="LEFT_ARROW">← Arrow Left</option>
-            <option value="UP_ARROW">↑ Arrow Up</option>
-            <option value="DOWN_ARROW">↓ Arrow Down</option>
-            <option value="HOME">Home</option><option value="END">End</option>
-            <option value="PAGE_UP">Page Up</option><option value="PAGE_DOWN">Page Down</option>
-            <option value="INSERT">Insert</option>
-            <optgroup label="Letters">
-              <option value="A">A</option><option value="B">B</option><option value="C">C</option>
-              <option value="D">D</option><option value="E">E</option><option value="F">F</option>
-              <option value="G">G</option><option value="H">H</option><option value="I">I</option>
-              <option value="J">J</option><option value="K">K</option><option value="L">L</option>
-              <option value="M">M</option><option value="N">N</option><option value="O">O</option>
-              <option value="P">P</option><option value="Q">Q</option><option value="R">R</option>
-              <option value="S">S</option><option value="T">T</option><option value="U">U</option>
-              <option value="V">V</option><option value="W">W</option><option value="X">X</option>
-              <option value="Y">Y</option><option value="Z">Z</option>
-            </optgroup>
-            <optgroup label="Numbers">
-              <option value="ONE">1</option><option value="TWO">2</option><option value="THREE">3</option>
-              <option value="FOUR">4</option><option value="FIVE">5</option><option value="SIX">6</option>
-              <option value="SEVEN">7</option><option value="EIGHT">8</option><option value="NINE">9</option>
-              <option value="ZERO">0</option>
-            </optgroup>
-            <optgroup label="Function Keys">
-              <option value="F1">F1</option><option value="F2">F2</option><option value="F3">F3</option>
-              <option value="F4">F4</option><option value="F5">F5</option><option value="F6">F6</option>
-              <option value="F7">F7</option><option value="F8">F8</option><option value="F9">F9</option>
-              <option value="F10">F10</option><option value="F11">F11</option><option value="F12">F12</option>
-            </optgroup>
-          </select>
+      </section>
+
+      <!-- ── STEP 2: TIMING ── -->
+      <section class="step-section" aria-labelledby="step2-heading">
+        <h2 class="step-heading" id="step2-heading"><span class="step-num">Step 2</span> Customize Timing</h2>
+        <div class="step-grid-2col">
+          <div class="panel">
+            <div class="panel-header"><span class="dot" aria-hidden="true"></span>Single-Switch Timing</div>
+            <div class="panel-body timing-grid">
+              <div class="field-row">
+                <label for="hold_to_scan">Hold to scan (seconds)</label>
+                <input type="number" id="hold_to_scan" value="2.0" step="0.1" min="0.1"
+                       aria-describedby="hint-hold">
+                <span id="hint-hold" class="sr-only">Duration in seconds the switch must be held before auto-scanning begins</span>
+              </div>
+              <div class="field-row">
+                <label for="scan_interval">Scan interval (seconds)</label>
+                <input type="number" id="scan_interval" value="1.0" step="0.1" min="0.1">
+              </div>
+              <div class="field-row">
+                <label for="max_short_press">Max short press (seconds)</label>
+                <input type="number" id="max_short_press" value="0.5" step="0.05" min="0.05">
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header"><span class="dot" aria-hidden="true"></span>Two-Switch Timing</div>
+            <div class="panel-body timing-grid">
+              <div class="field-row">
+                <label for="debounce">Debounce delay (seconds)</label>
+                <input type="number" id="debounce" value="0.1" step="0.01" min="0.01">
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="field-row">
-          <label>TFT Symbol</label>
-          <input type="text" id="custom-symbol" class="symbol-input" maxlength="4" placeholder="e.g. ⌘Z">
+      </section>
+
+      <!-- ── STEP 3: MODE 0 ── -->
+      <section class="step-section" aria-labelledby="step3-heading">
+        <h2 class="step-heading" id="step3-heading"><span class="step-num">Step 3</span> Customize Basic Switch Interface Mode</h2>
+        <div class="panel mode0-panel">
+          <div class="panel-header"><span class="dot" style="background:#007060" aria-hidden="true"></span>Mode 0 — Direct Switch Actions <span class="badge" style="background:#007060">D0 / double-click</span></div>
+          <div class="panel-body">
+            <details class="cfg-info">
+              <summary>About Mode 0 &amp; how to configure it</summary>
+              <p>Mode 0 maps each external switch to a single, immediate action — no scanning or submenus, just a direct press. Enter this mode by pressing <strong>D0</strong> on the board, or by <strong>double-clicking</strong> either external switch at the mode-select screen. Configure the action for each switch below; supports keyboard keys, mouse controls, and media keys.</p>
+              <p><strong>Two-step setup:</strong> pick an <em>action type</em> first, then a second dropdown appears with the specific controls for that type. The <strong>Label</strong> and <strong>TFT symbol</strong> auto-fill to match your choice — edit either one to override it (your edit then sticks). <strong>Keyboard:</strong> optional modifier + key. <strong>Mouse click:</strong> left / right / middle. <strong>Mouse scroll:</strong> ticks up or down. <strong>Mouse move:</strong> X/Y pixels per press. <strong>Media:</strong> play/pause, volume, track skip, mute, brightness — requires <code>adafruit_hid</code> ≥ 6.0. Keep the TFT symbol to 1–3 plain characters (the onboard display does not render emoji).</p>
+            </details>
+            <div class="mode0-grid">
+
+              <!-- Switch 1 -->
+              <div class="mode0-switch-card">
+                <div class="mode0-switch-title">
+                  Switch 1 <span class="mode0-pin-badge">Select</span>
+                </div>
+                <div class="mode0-type-row">
+                  <label for="sw1-type">Action type</label>
+                  <select id="sw1-type" class="key-select" onchange="updateMode0Fields(1)">
+                    <option value="key">Keyboard key</option>
+                    <option value="mouse_click">Mouse click</option>
+                    <option value="mouse_scroll">Mouse scroll</option>
+                    <option value="mouse_move">Mouse move</option>
+                    <option value="media">Media / consumer</option>
+                  </select>
+                </div>
+                <div class="mode0-subfields" id="sw1-fields">
+                  <!-- rendered by updateMode0Fields(1) -->
+                </div>
+                <div class="mode0-type-row">
+                  <label for="sw1-label">Label</label>
+                  <input type="text" id="sw1-label" class="symbol-input" style="width:90px" maxlength="20" value="Enter" data-auto="true" oninput="markMode0Manual(this)" aria-label="Switch 1 display label">
+                  <label for="sw1-symbol" style="margin-left:0.5rem">TFT symbol</label>
+                  <input type="text" id="sw1-symbol" class="symbol-input" style="width:48px" maxlength="3" value="ENT" data-auto="true" oninput="markMode0Manual(this)" aria-label="Switch 1 TFT symbol (1-3 chars)">
+                </div>
+              </div>
+
+              <!-- Switch 2 -->
+              <div class="mode0-switch-card">
+                <div class="mode0-switch-title">
+                  Switch 2 <span class="mode0-pin-badge">Next</span>
+                </div>
+                <div class="mode0-type-row">
+                  <label for="sw2-type">Action type</label>
+                  <select id="sw2-type" class="key-select" onchange="updateMode0Fields(2)">
+                    <option value="key">Keyboard key</option>
+                    <option value="mouse_click">Mouse click</option>
+                    <option value="mouse_scroll">Mouse scroll</option>
+                    <option value="mouse_move">Mouse move</option>
+                    <option value="media">Media / consumer</option>
+                  </select>
+                </div>
+                <div class="mode0-subfields" id="sw2-fields">
+                  <!-- rendered by updateMode0Fields(2) -->
+                </div>
+                <div class="mode0-type-row">
+                  <label for="sw2-label">Label</label>
+                  <input type="text" id="sw2-label" class="symbol-input" style="width:90px" maxlength="20" value="Tab" data-auto="true" oninput="markMode0Manual(this)" aria-label="Switch 2 display label">
+                  <label for="sw2-symbol" style="margin-left:0.5rem">TFT symbol</label>
+                  <input type="text" id="sw2-symbol" class="symbol-input" style="width:48px" maxlength="3" value="TAB" data-auto="true" oninput="markMode0Manual(this)" aria-label="Switch 2 TFT symbol (1-3 chars)">
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Mode 0 timing (double-click window, switch hold to exit) -->
+            <div class="timing-grid" style="margin-top:1rem">
+              <div class="field-row">
+                <label for="dbl_click_window">Double-click window (seconds)</label>
+                <input type="number" id="dbl_click_window" value="0.4" step="0.05" min="0.1"
+                       aria-describedby="hint-dbl">
+                <span id="hint-dbl" class="sr-only">Max gap in seconds between two clicks to register as a double-click and enter Mode 0</span>
+              </div>
+              <div class="field-row">
+                <label for="switch_hold_exit">Switch hold to exit (seconds)</label>
+                <input type="number" id="switch_hold_exit" value="1.5" step="0.1" min="0.3"
+                       aria-describedby="hint-swhold">
+                <span id="hint-swhold" class="sr-only">How long to hold an external switch in Mode 0 to return to the mode-select screen. D0 also exits Mode 0 instantly.</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <button class="add-custom-btn" onclick="addCustomShortcut()">＋ Add</button>
+      </section>
+
+      <!-- ── STEP 4: ACTIVE SHORTCUTS ── -->
+      <section class="step-section" aria-labelledby="step4-heading">
+        <h2 class="step-heading" id="step4-heading"><span class="step-num">Step 4</span> Customize Active Shortcuts</h2>
+
+        <div class="panel">
+          <div class="panel-header"><span class="dot" aria-hidden="true"></span>Active Shortcuts — ▲ ▼ to reorder, nest into submenus below</div>
+          <div class="panel-body">
+            <div class="list-labels" aria-hidden="true">
+              <span>Move</span><span>Key / Label</span><span style="text-align:center">Symbol</span><span>Submenu</span><span></span>
+            </div>
+            <div id="keycode-list" aria-label="Active shortcut list" role="list"
+                 aria-describedby="list-help"></div>
+            <p id="list-help" class="sr-only">
+              Each shortcut has Move Up and Move Down buttons. Activating a move button keeps
+              focus on that button so you can continue pressing to reorder with minimal switches.
+              Submenu entry points are shown with an amber background and a thicker border, and
+              have their own controls below them to show their items, add items, and toggle
+              auto-exit. A plain shortcut has a "Move into submenu" dropdown to nest it under an
+              existing submenu entry point.
+            </p>
+            <div id="move-announce" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
+
+            <div class="add-options" role="group" aria-label="Options for the next shortcut you add">
+              <label for="opt-submenu"><input type="checkbox" id="opt-submenu"> Make this a submenu entry point</label>
+              <label for="opt-autoexit" id="opt-autoexit-wrap" style="display:none">
+                <input type="checkbox" id="opt-autoexit"> Auto-exit submenu after a selection
+              </label>
+            </div>
+
+            <div class="child-add-banner" id="child-add-banner" role="status">
+              <span>Adding items to submenu "<strong id="child-add-target-label"></strong>" —
+                    use presets or the custom builder below, then press Done.</span>
+              <button type="button" id="child-add-done-btn">Done</button>
+            </div>
+
+            <div class="add-row">
+              <button class="add-btn" onclick="focusPresetReference()">＋ Add from presets</button>
+              <button class="add-btn custom" onclick="toggleCustomForm()" aria-expanded="false" id="toggle-custom-btn">＋ Custom keypress</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── CUSTOM BUILDER ── -->
+        <div class="panel custom-panel" id="custom-panel" style="display:none">
+          <div class="panel-header"><span class="dot" style="background:var(--cfg-accent2)" aria-hidden="true"></span>Custom Keypress Builder</div>
+          <div class="panel-body">
+            <div class="add-options" id="custom-nokey-row" style="margin-top:0;margin-bottom:0.7rem">
+              <label for="custom-nokey">
+                <input type="checkbox" id="custom-nokey" onchange="toggleFolderMode()">
+                No keystroke (organisational folder only — must be a submenu entry point)
+              </label>
+            </div>
+            <div class="custom-form">
+              <div class="field-row" id="custom-mod-row">
+                <label for="custom-mod">Modifier(s)</label>
+                <select id="custom-mod" class="key-select">
+                  <option value="">— none —</option>
+                  <option value="LEFT_CONTROL">Ctrl</option>
+                  <option value="LEFT_SHIFT">Shift</option>
+                  <option value="LEFT_ALT">Alt</option>
+                  <option value="LEFT_GUI">Cmd / Win</option>
+                  <option value="LEFT_CONTROL,LEFT_SHIFT">Ctrl + Shift</option>
+                  <option value="LEFT_CONTROL,LEFT_ALT">Ctrl + Alt</option>
+                  <option value="LEFT_GUI,LEFT_SHIFT">Cmd + Shift</option>
+                  <option value="LEFT_SHIFT,LEFT_ALT">Shift + Alt</option>
+                </select>
+              </div>
+              <div class="field-row" id="custom-key-row">
+                <label for="custom-key">Base Key</label>
+                <select id="custom-key" class="key-select">
+                  <option value="TAB">Tab</option>
+                  <option value="ENTER">Enter</option>
+                  <option value="SPACE">Space</option>
+                  <option value="BACKSPACE">Backspace</option>
+                  <option value="DELETE">Delete</option>
+                  <option value="ESCAPE">Escape</option>
+                  <option value="RIGHT_ARROW">→ Arrow Right</option>
+                  <option value="LEFT_ARROW">← Arrow Left</option>
+                  <option value="UP_ARROW">↑ Arrow Up</option>
+                  <option value="DOWN_ARROW">↓ Arrow Down</option>
+                  <option value="HOME">Home</option>
+                  <option value="END">End</option>
+                  <option value="PAGE_UP">Page Up</option>
+                  <option value="PAGE_DOWN">Page Down</option>
+                  <option value="INSERT">Insert</option>
+                  <option value="FORWARD_SLASH">/ (slash)</option>
+                  <optgroup label="Letters">
+                    <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                    <option value="D">D</option><option value="E">E</option><option value="F">F</option>
+                    <option value="G">G</option><option value="H">H</option><option value="I">I</option>
+                    <option value="J">J</option><option value="K">K</option><option value="L">L</option>
+                    <option value="M">M</option><option value="N">N</option><option value="O">O</option>
+                    <option value="P">P</option><option value="Q">Q</option><option value="R">R</option>
+                    <option value="S">S</option><option value="T">T</option><option value="U">U</option>
+                    <option value="V">V</option><option value="W">W</option><option value="X">X</option>
+                    <option value="Y">Y</option><option value="Z">Z</option>
+                  </optgroup>
+                  <optgroup label="Numbers">
+                    <option value="ONE">1</option><option value="TWO">2</option><option value="THREE">3</option>
+                    <option value="FOUR">4</option><option value="FIVE">5</option><option value="SIX">6</option>
+                    <option value="SEVEN">7</option><option value="EIGHT">8</option><option value="NINE">9</option>
+                    <option value="ZERO">0</option>
+                  </optgroup>
+                  <optgroup label="Function Keys">
+                    <option value="F1">F1</option><option value="F2">F2</option><option value="F3">F3</option>
+                    <option value="F4">F4</option><option value="F5">F5</option><option value="F6">F6</option>
+                    <option value="F7">F7</option><option value="F8">F8</option><option value="F9">F9</option>
+                    <option value="F10">F10</option><option value="F11">F11</option><option value="F12">F12</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div class="field-row folder-row" id="custom-folder-row">
+                <label for="custom-folder-label">Folder label</label>
+                <input type="text" id="custom-folder-label" class="key-text-input" maxlength="24"
+                       placeholder="e.g. Block Actions" aria-describedby="hint-folder">
+                <span id="hint-folder" class="sr-only">Name shown for this folder — it sends no keystroke, it only opens its submenu</span>
+              </div>
+              <div class="field-row">
+                <label for="custom-symbol">TFT Symbol</label>
+                <input type="text" id="custom-symbol" class="symbol-input" maxlength="4"
+                       placeholder="e.g. ⌘Z" aria-describedby="hint-symbol">
+                <span id="hint-symbol" class="sr-only">1 to 3 characters shown on the device TFT screen</span>
+              </div>
+              <button class="add-custom-btn" onclick="addCustomShortcut()">＋ Add</button>
+            </div>
+            <p class="custom-help">
+              Pick an optional modifier and a base key to build combos like <code>Ctrl+Z</code> (undo) or
+              <code>Cmd+Shift+Z</code> (redo). The TFT symbol appears on the device screen — keep it 1–3 chars.
+              Custom entries (teal border) have an editable label in the active list.
+              Check "No keystroke" to build an organisational folder instead — it always becomes a submenu entry point.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── STEP 5: GENERATE ── -->
+      <section class="step-section" aria-labelledby="step5-heading">
+        <h2 class="step-heading" id="step5-heading"><span class="step-num">Step 5</span> Generate and Download File</h2>
+        <div class="generate-row">
+          <button class="gen-btn" onclick="generateConfig()">▶ Generate config.py</button>
+          <button class="dl-btn" id="dl-btn" onclick="downloadConfig()">↓ Download config.py</button>
+          <span id="status" role="status" aria-live="polite"></span>
+        </div>
+
+        <div class="panel output-panel">
+          <div class="panel-header"><span class="dot" aria-hidden="true"></span>config.py — preview</div>
+          <div class="panel-body">
+            <textarea id="output-code" readonly spellcheck="false"
+                      aria-label="Generated config.py file content — read only preview"></textarea>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /.cfg-main -->
+
+    <aside class="cfg-sidebar" aria-labelledby="sidebar-heading">
+      <p class="sidebar-lead" id="sidebar-heading">🧰 Shortcut toolbox — use these to add items to <strong>Step 4: Active Shortcuts</strong>.</p>
+
+      <!-- ── BLOCKLY REFERENCE TABLE ── -->
+      <div class="panel" id="ref-panel">
+        <div class="panel-header"><span class="dot" aria-hidden="true"></span>Blockly Shortcut Reference — click + to add to your list</div>
+        <div class="ref-wrap">
+          <table class="ref-table" aria-label="Blockly keyboard shortcuts reference">
+            <thead>
+              <tr>
+                <th scope="col">Function</th>
+                <th scope="col" id="ref-key-col">Mac Key</th>
+                <th scope="col"><span class="sr-only">Add action</span></th>
+              </tr>
+            </thead>
+            <tbody id="ref-body"></tbody>
+          </table>
+        </div>
       </div>
-      <p class="custom-help">
-        Pick an optional modifier and a base key to build combos like <code>Ctrl+Z</code> (undo) or
-        <code>Cmd+Shift+Z</code> (redo). The TFT symbol shows on the device screen — keep it 1–3 chars.
-        Custom entries (teal border) have an editable label in the active list.
-      </p>
-    </div>
-  </div>
 
-  <!-- ── GENERATE ── -->
-  <hr class="section-divider">
-  <div class="generate-row">
-    <button class="gen-btn" onclick="generateConfig()">▶ Generate config.py</button>
-    <button class="dl-btn" id="dl-btn" onclick="downloadConfig()">↓ Download config.py</button>
-    <span id="status"></span>
-  </div>
+      <!-- ── QUICK-ADD SUBMENU PRESETS ── -->
+      <div class="panel">
+        <div class="panel-header"><span class="dot" style="background:var(--cfg-submenu-border)" aria-hidden="true"></span>Quick-add Submenu Presets</div>
+        <div class="panel-body">
+          <p style="font-size:var(--text-xs);color:var(--cfg-muted);margin-bottom:0.3rem;">
+            Adds a ready-made submenu — entry point plus items — in one click.
+          </p>
+          <div class="quick-add-row" id="quick-add-row"></div>
+        </div>
+      </div>
+    </aside>
 
-  <!-- ── OUTPUT ── -->
-  <div class="panel output-panel">
-    <div class="panel-header"><span class="dot"></span>config.py — preview</div>
-    <div class="panel-body">
-      <textarea id="output-code" readonly spellcheck="false"></textarea>
-    </div>
-  </div>
+  </div><!-- /.cfg-columns -->
 
-</div>
+</main>
 
 <script>
-// ── BLOCKLY SHORTCUT DATA (sourced from Blockly_Keyboard_Shortcuts.xlsx) ──
+// ── MODE 0 FIELD RENDERER ─────────────────────────────────────────────────
+// Each control type has a list of options. Every option carries:
+//   value  — the CircuitPython identifier
+//   text   — what shows in the dropdown
+//   label  — suggested display label (auto-fills the Label field)
+//   symbol — suggested 1-3 char TFT symbol (auto-fills the Symbol field)
+
+const MODE0_KEY_LIST = [
+  { value:'ENTER',       text:'Enter',        label:'Enter',   symbol:'ENT' },
+  { value:'TAB',         text:'Tab',          label:'Tab',     symbol:'TAB' },
+  { value:'SPACE',       text:'Space',        label:'Space',   symbol:'SPC' },
+  { value:'BACKSPACE',   text:'Backspace',    label:'Backsp',  symbol:'BSP' },
+  { value:'DELETE',      text:'Delete',       label:'Delete',  symbol:'DEL' },
+  { value:'ESCAPE',      text:'Escape',       label:'Esc',     symbol:'ESC' },
+  { value:'RIGHT_ARROW', text:'Arrow Right',  label:'Right',   symbol:'R' },
+  { value:'LEFT_ARROW',  text:'Arrow Left',   label:'Left',    symbol:'L' },
+  { value:'UP_ARROW',    text:'Arrow Up',     label:'Up',      symbol:'U' },
+  { value:'DOWN_ARROW',  text:'Arrow Down',   label:'Down',    symbol:'D' },
+  { value:'PAGE_UP',     text:'Page Up',      label:'PgUp',    symbol:'PU' },
+  { value:'PAGE_DOWN',   text:'Page Down',    label:'PgDn',    symbol:'PD' },
+  { value:'HOME',        text:'Home',         label:'Home',    symbol:'HOM' },
+  { value:'END',         text:'End',          label:'End',     symbol:'END' },
+  { value:'FORWARD_SLASH', text:'/ (slash)',  label:'/',       symbol:'/' },
+];
+// Letters A-Z
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(c => {
+  MODE0_KEY_LIST.push({ value:c, text:'Letter ' + c, label:c, symbol:c, group:'Letters' });
+});
+// Numbers 1-0
+[['ONE','1'],['TWO','2'],['THREE','3'],['FOUR','4'],['FIVE','5'],
+ ['SIX','6'],['SEVEN','7'],['EIGHT','8'],['NINE','9'],['ZERO','0']].forEach(n => {
+  MODE0_KEY_LIST.push({ value:n[0], text:'Number ' + n[1], label:n[1], symbol:n[1], group:'Numbers' });
+});
+// Function keys F1-F12
+for (let i = 1; i <= 12; i++) {
+  MODE0_KEY_LIST.push({ value:'F'+i, text:'F'+i, label:'F'+i, symbol:'F'+i, group:'Function Keys' });
+}
+
+const MODE0_MOD_LIST = [
+  { value:'',                       text:'— none —' },
+  { value:'LEFT_CONTROL',           text:'Ctrl' },
+  { value:'LEFT_SHIFT',             text:'Shift' },
+  { value:'LEFT_ALT',               text:'Alt' },
+  { value:'LEFT_GUI',               text:'Cmd / Win' },
+  { value:'LEFT_CONTROL,LEFT_SHIFT',text:'Ctrl + Shift' },
+  { value:'LEFT_CONTROL,LEFT_ALT',  text:'Ctrl + Alt' },
+  { value:'LEFT_GUI,LEFT_SHIFT',    text:'Cmd + Shift' },
+];
+
+const MODE0_MOUSE_BTN_LIST = [
+  { value:'LEFT_BUTTON',   text:'Left button',   label:'L Click', symbol:'LMB' },
+  { value:'RIGHT_BUTTON',  text:'Right button',  label:'R Click', symbol:'RMB' },
+  { value:'MIDDLE_BUTTON', text:'Middle button', label:'M Click', symbol:'MMB' },
+];
+
+const MODE0_MEDIA_LIST = [
+  { value:'PLAY_PAUSE',           text:'Play / Pause',     label:'Play',     symbol:'>||' },
+  { value:'VOLUME_INCREMENT',     text:'Volume Up',        label:'Vol +',    symbol:'V+' },
+  { value:'VOLUME_DECREMENT',     text:'Volume Down',      label:'Vol -',    symbol:'V-' },
+  { value:'MUTE',                 text:'Mute',             label:'Mute',     symbol:'MUT' },
+  { value:'SCAN_NEXT_TRACK',      text:'Next Track',       label:'Next',     symbol:'>>' },
+  { value:'SCAN_PREVIOUS_TRACK',  text:'Previous Track',   label:'Prev',     symbol:'<<' },
+  { value:'STOP',                 text:'Stop',             label:'Stop',     symbol:'[]' },
+  { value:'FAST_FORWARD',         text:'Fast Forward',     label:'FFwd',     symbol:'FF' },
+  { value:'REWIND',               text:'Rewind',           label:'Rew',      symbol:'RW' },
+  { value:'BRIGHTNESS_INCREMENT', text:'Brightness Up',    label:'Brt +',    symbol:'B+' },
+  { value:'BRIGHTNESS_DECREMENT', text:'Brightness Down',  label:'Brt -',    symbol:'B-' },
+];
+
+// Build <option> / <optgroup> markup from a list, marking `selValue` selected.
+function buildOptions(list, selValue) {
+  let out = '';
+  let openGroup = null;
+  list.forEach(o => {
+    if (o.group && o.group !== openGroup) {
+      if (openGroup) out += '</optgroup>';
+      out += '<optgroup label="' + o.group + '">';
+      openGroup = o.group;
+    } else if (!o.group && openGroup) {
+      out += '</optgroup>';
+      openGroup = null;
+    }
+    const sel = (o.value === selValue) ? ' selected' : '';
+    out += '<option value="' + o.value + '"' + sel + '>' + o.text + '</option>';
+  });
+  if (openGroup) out += '</optgroup>';
+  return out;
+}
+
+// Default secondary selection per switch & type
+function defaultControlFor(sw, type) {
+  if (type === 'key')         return sw === 1 ? 'ENTER' : 'TAB';
+  if (type === 'mouse_click') return 'LEFT_BUTTON';
+  if (type === 'media')       return 'PLAY_PAUSE';
+  return '';
+}
+
+// Render the secondary (dependent) dropdown once a type is chosen.
+function updateMode0Fields(sw) {
+  const type = document.getElementById('sw' + sw + '-type').value;
+  const container = document.getElementById('sw' + sw + '-fields');
+  let html = '';
+
+  if (type === 'key') {
+    const defKey = defaultControlFor(sw, 'key');
+    html =
+      '<div class="mode0-type-row">' +
+        '<label for="sw' + sw + '-mod">Modifier</label>' +
+        '<select id="sw' + sw + '-mod" class="key-select" onchange="suggestMode0Display(' + sw + ')">' +
+          buildOptions(MODE0_MOD_LIST, '') +
+        '</select>' +
+      '</div>' +
+      '<div class="mode0-type-row">' +
+        '<label for="sw' + sw + '-key">Key</label>' +
+        '<select id="sw' + sw + '-key" class="key-select" onchange="suggestMode0Display(' + sw + ')">' +
+          buildOptions(MODE0_KEY_LIST, defKey) +
+        '</select>' +
+      '</div>';
+  } else if (type === 'mouse_click') {
+    html =
+      '<div class="mode0-type-row">' +
+        '<label for="sw' + sw + '-mbtn">Button</label>' +
+        '<select id="sw' + sw + '-mbtn" class="key-select" onchange="suggestMode0Display(' + sw + ')">' +
+          buildOptions(MODE0_MOUSE_BTN_LIST, 'LEFT_BUTTON') +
+        '</select>' +
+      '</div>';
+  } else if (type === 'mouse_scroll') {
+    html =
+      '<div class="mode0-type-row">' +
+        '<label for="sw' + sw + '-scroll">Scroll ticks</label>' +
+        '<input type="number" id="sw' + sw + '-scroll" class="key-select" value="1" min="-10" max="10" step="1" style="width:70px" onchange="suggestMode0Display(' + sw + ')">' +
+        '<span style="font-size:var(--text-xs);color:var(--cfg-muted)">(positive = up)</span>' +
+      '</div>';
+  } else if (type === 'mouse_move') {
+    html =
+      '<div class="mode0-type-row">' +
+        '<label>Move X</label>' +
+        '<input type="number" id="sw' + sw + '-movex" class="key-select" value="0" min="-100" max="100" step="1" style="width:70px" onchange="suggestMode0Display(' + sw + ')">' +
+        '<label style="margin-left:0.5rem">Y</label>' +
+        '<input type="number" id="sw' + sw + '-movey" class="key-select" value="0" min="-100" max="100" step="1" style="width:70px" onchange="suggestMode0Display(' + sw + ')">' +
+      '</div>';
+  } else if (type === 'media') {
+    html =
+      '<div class="mode0-type-row">' +
+        '<label for="sw' + sw + '-media">Control</label>' +
+        '<select id="sw' + sw + '-media" class="key-select" onchange="suggestMode0Display(' + sw + ')">' +
+          buildOptions(MODE0_MEDIA_LIST, 'PLAY_PAUSE') +
+        '</select>' +
+      '</div>';
+  }
+
+  container.innerHTML = html;
+  // Auto-fill the display label & symbol to match the new selection.
+  suggestMode0Display(sw);
+}
+
+// Look up the suggested label/symbol for the current secondary selection
+// and write them into the Label / Symbol fields.
+function suggestMode0Display(sw) {
+  const type = document.getElementById('sw' + sw + '-type').value;
+  const labelEl  = document.getElementById('sw' + sw + '-label');
+  const symbolEl = document.getElementById('sw' + sw + '-symbol');
+  let suggestion = null;
+
+  if (type === 'key') {
+    const key = document.getElementById('sw' + sw + '-key')?.value;
+    const mod = document.getElementById('sw' + sw + '-mod')?.value || '';
+    const base = MODE0_KEY_LIST.find(o => o.value === key);
+    if (base) {
+      const modText = MODE0_MOD_LIST.find(m => m.value === mod);
+      const modPrefix = (mod && modText) ? modText.text + '+' : '';
+      suggestion = {
+        label: modPrefix + base.label,
+        symbol: base.symbol
+      };
+    }
+  } else if (type === 'mouse_click') {
+    const btn = document.getElementById('sw' + sw + '-mbtn')?.value;
+    suggestion = MODE0_MOUSE_BTN_LIST.find(o => o.value === btn);
+  } else if (type === 'mouse_scroll') {
+    const y = parseInt(document.getElementById('sw' + sw + '-scroll')?.value || '1');
+    suggestion = { label: 'Scroll ' + (y >= 0 ? 'Up' : 'Dn'), symbol: y >= 0 ? 'SUp' : 'SDn' };
+  } else if (type === 'mouse_move') {
+    const x = parseInt(document.getElementById('sw' + sw + '-movex')?.value || '0');
+    const y = parseInt(document.getElementById('sw' + sw + '-movey')?.value || '0');
+    suggestion = { label: 'Move ' + x + ',' + y, symbol: 'MOV' };
+  } else if (type === 'media') {
+    const code = document.getElementById('sw' + sw + '-media')?.value;
+    suggestion = MODE0_MEDIA_LIST.find(o => o.value === code);
+  }
+
+  if (suggestion) {
+    // Only overwrite if the field hasn't been manually customised, OR
+    // if it still holds a previous auto-suggestion. We track this with a flag.
+    if (labelEl.dataset.auto !== 'false') {
+      labelEl.value = suggestion.label;
+      labelEl.dataset.auto = 'true';
+    }
+    if (symbolEl.dataset.auto !== 'false') {
+      symbolEl.value = (suggestion.symbol || '?').slice(0, 3);
+      symbolEl.dataset.auto = 'true';
+    }
+  }
+}
+
+// Mark a display field as manually edited so auto-suggest stops overwriting it.
+function markMode0Manual(el) { el.dataset.auto = 'false'; }
+
+function getMode0ActionPy(sw) {
+  const type = document.getElementById('sw' + sw + '-type').value;
+
+  if (type === 'key') {
+    const mod  = document.getElementById('sw' + sw + '-mod')?.value || '';
+    const key  = document.getElementById('sw' + sw + '-key')?.value || 'ENTER';
+    const mods = mod ? mod.split(',') : [];
+    const keys = mods.concat([key]).map(k => 'Keycode.' + k).join(', ');
+    return '{"type": "key", "keys": [' + keys + ']}';
+  }
+  if (type === 'mouse_click') {
+    const btn = document.getElementById('sw' + sw + '-mbtn')?.value || 'LEFT_BUTTON';
+    return '{"type": "mouse_click", "button": Mouse.' + btn + '}';
+  }
+  if (type === 'mouse_scroll') {
+    const y = parseInt(document.getElementById('sw' + sw + '-scroll')?.value || '1');
+    return '{"type": "mouse_scroll", "y": ' + y + '}';
+  }
+  if (type === 'mouse_move') {
+    const x = parseInt(document.getElementById('sw' + sw + '-movex')?.value || '0');
+    const y = parseInt(document.getElementById('sw' + sw + '-movey')?.value || '0');
+    return '{"type": "mouse_move", "x": ' + x + ', "y": ' + y + '}';
+  }
+  if (type === 'media') {
+    const code = document.getElementById('sw' + sw + '-media')?.value || 'PLAY_PAUSE';
+    return '{"type": "media", "code": ConsumerControlCode.' + code + '}';
+  }
+  return '{"type": "key", "keys": [Keycode.ENTER]}';
+}
+
+function needsMouse() {
+  return ['mouse_click','mouse_scroll','mouse_move'].includes(document.getElementById('sw1-type').value) ||
+         ['mouse_click','mouse_scroll','mouse_move'].includes(document.getElementById('sw2-type').value);
+}
+
+function needsConsumer() {
+  return document.getElementById('sw1-type').value === 'media' ||
+         document.getElementById('sw2-type').value === 'media';
+}
+
+// ── BLOCKLY SHORTCUT DATA ──────────────────────────────────────────────────
 const BLOCKLY_SHORTCUTS = [
   { fn:"Move forward",     mac:{label:"tab",           kc:["TAB"]},                                win:{label:"tab",            kc:["TAB"]} },
   { fn:"Move backward",    mac:{label:"shift+tab",     kc:["LEFT_SHIFT","TAB"]},                   win:{label:"shift+tab",      kc:["LEFT_SHIFT","TAB"]} },
@@ -692,6 +1604,7 @@ const BLOCKLY_SHORTCUTS = [
   { fn:"Move mode",        mac:{label:"m",             kc:["M"]},                                  win:{label:"m",              kc:["M"]} },
   { fn:"Disconnect block", mac:{label:"x",             kc:["X"]},                                  win:{label:"x",              kc:["X"]} },
   { fn:"Remove block",     mac:{label:"delete",        kc:["DELETE"]},                             win:{label:"delete",         kc:["DELETE"]} },
+  { fn:"Escape (deselect / cancel)", mac:{label:"escape", kc:["ESCAPE"]},                          win:{label:"escape",         kc:["ESCAPE"]} },
   { fn:"Toolbox",          mac:{label:"t",             kc:["T"]},                                  win:{label:"t",              kc:["T"]} },
   { fn:"Area menu",        mac:{label:"cmd+b",         kc:["LEFT_GUI","B"]},                       win:{label:"ctrl+b",         kc:["LEFT_CONTROL","B"]} },
   { fn:"Header area",      mac:{label:"1",             kc:["ONE"]},                                win:{label:"1",              kc:["ONE"]} },
@@ -699,32 +1612,396 @@ const BLOCKLY_SHORTCUTS = [
   { fn:"Toolbox area",     mac:{label:"3",             kc:["THREE"]},                              win:{label:"3",              kc:["THREE"]} },
   { fn:"Workspace area",   mac:{label:"4",             kc:["FOUR"]},                               win:{label:"4",              kc:["FOUR"]} },
   { fn:"Download area",    mac:{label:"5",             kc:["FIVE"]},                               win:{label:"5",              kc:["FIVE"]} },
+  { fn:"Ctrl + /",         mac:{label:"cmd+/",         kc:["LEFT_GUI","FORWARD_SLASH"]},           win:{label:"ctrl+/",         kc:["LEFT_CONTROL","FORWARD_SLASH"]} },
 ];
 
-// ── DEFAULT ACTIVE SHORTCUTS ───────────────────────────────────────────────
+// ── STABLE IDS ─────────────────────────────────────────────────────────────
+// Indices shift as items are reordered/nested/extracted, so every shortcut
+// (top-level or nested) gets a permanent id for focus tracking & lookups.
+let idCounter = 1;
+function nid() { return idCounter++; }
+
+// ── DEFAULT ACTIVE SHORTCUTS ──────────────────────────────────────────────
+// The last three entries are submenu entry points — the default program now
+// ships with these submenus already built. Written for macOS (Cmd) since
+// that's the default OS selection below; switching the OS toggle swaps
+// every Ctrl ⇄ Cmd in this list automatically (see swapAllModifiers()).
 let shortcuts = [
-  { label:"tab",         kc:["TAB"],         symbol:"→", custom:false },
-  { label:"arrow right", kc:["RIGHT_ARROW"], symbol:"R", custom:false },
-  { label:"arrow down",  kc:["DOWN_ARROW"],  symbol:"D", custom:false },
-  { label:"enter",       kc:["ENTER"],       symbol:"e", custom:false },
-  { label:"arrow left",  kc:["LEFT_ARROW"],  symbol:"L", custom:false },
-  { label:"arrow up",    kc:["UP_ARROW"],    symbol:"U", custom:false },
-  { label:"delete",      kc:["DELETE"],      symbol:"x", custom:false },
-  { label:"w",           kc:["W"],           symbol:"W", custom:false },
-  { label:"t",           kc:["T"],           symbol:"T", custom:false },
+  { id:nid(), label:"tab",         kc:["TAB"],         symbol:">", custom:false },
+  { id:nid(), label:"arrow right", kc:["RIGHT_ARROW"], symbol:"R", custom:false },
+  { id:nid(), label:"arrow down",  kc:["DOWN_ARROW"],  symbol:"D", custom:false },
+  { id:nid(), label:"enter",       kc:["ENTER"],       symbol:"e", custom:false },
+  { id:nid(), label:"arrow left",  kc:["LEFT_ARROW"],  symbol:"L", custom:false },
+  { id:nid(), label:"arrow up",    kc:["UP_ARROW"],    symbol:"U", custom:false },
+  { id:nid(), label:"delete",      kc:["DELETE"],      symbol:"x", custom:false },
+  { id:nid(), label:"escape",      kc:["ESCAPE"],      symbol:"ESC", custom:false },
+  { id:nid(), label:"w",           kc:["W"],           symbol:"W", custom:false },
+  { id:nid(), label:"t",           kc:["T"],           symbol:"T", custom:false },
+  {
+    id:nid(), label:"cmd+b", kc:["LEFT_GUI","B"], symbol:"B", custom:false,
+    isSubmenu:true, autoExit:true,
+    children: [
+      { id:nid(), label:"0", kc:["ZERO"],  symbol:"0", custom:false },
+      { id:nid(), label:"1", kc:["ONE"],   symbol:"1", custom:false },
+      { id:nid(), label:"2", kc:["TWO"],   symbol:"2", custom:false },
+      { id:nid(), label:"3", kc:["THREE"], symbol:"3", custom:false },
+      { id:nid(), label:"4", kc:["FOUR"],  symbol:"4", custom:false },
+      { id:nid(), label:"5", kc:["FIVE"],  symbol:"5", custom:false },
+    ]
+  },
+  {
+    // The on-screen menu cmd+enter opens doesn't respond to direct letter
+    // shortcuts — only arrow-key navigation + Enter. No auto-exit, so you
+    // can arrow down/up as many times as needed before confirming.
+    id:nid(), label:"cmd+enter", kc:["LEFT_GUI","ENTER"], symbol:"ENT", custom:false,
+    isSubmenu:true, autoExit:false,
+    children: [
+      { id:nid(), label:"arrow down", kc:["DOWN_ARROW"], symbol:"D", custom:false },
+      { id:nid(), label:"enter",      kc:["ENTER"],      symbol:"e", custom:false },
+      { id:nid(), label:"arrow up",   kc:["UP_ARROW"],   symbol:"U", custom:false },
+    ]
+  },
+  {
+    // A pure organisational folder — kc is empty, so selecting this entry
+    // sends no keystroke of its own, it just opens the submenu below.
+    id:nid(), label:"Block Actions", kc:[], symbol:"BLK", custom:false,
+    isSubmenu:true, autoExit:true,
+    children: [
+      { id:nid(), label:"cut",       kc:["LEFT_GUI","X"],                        symbol:"X",  custom:false },
+      { id:nid(), label:"copy",      kc:["LEFT_GUI","C"],                        symbol:"C",  custom:false },
+      { id:nid(), label:"paste",     kc:["LEFT_GUI","V"],                        symbol:"V",  custom:false },
+      { id:nid(), label:"duplicate", kc:["D"],                                   symbol:"D",  custom:false },
+      { id:nid(), label:"delete",    kc:["BACKSPACE"],                           symbol:"BS", custom:false },
+      { id:nid(), label:"undo",      kc:["LEFT_GUI","Z"],                        symbol:"U",  custom:false },
+      { id:nid(), label:"redo",      kc:["LEFT_GUI","LEFT_SHIFT","Z"],           symbol:"R",  custom:false },
+    ]
+  },
 ];
+
+// Submenus start expanded so their default items are visible right away.
+let expandedSet = new Set(shortcuts.filter(s => s.isSubmenu).map(s => s.id));
+// id of the submenu currently receiving new items from "+ Add ..." actions,
+// or null when adds go to the top level.
+let childAddTarget = null;
 
 let dragSrcIdx = null;
 let currentOS  = 'mac';
 
 // ── OS TOGGLE ──────────────────────────────────────────────────────────────
+// Swapping OS swaps every Ctrl ⇄ Cmd modifier already in the active list
+// (recursively, including submenu children) — not just future additions —
+// so the whole list stays correct for whichever OS is selected.
+function swapModifierKeycode(kc) {
+  return kc.map(k => {
+    if (k === 'LEFT_CONTROL')  return 'LEFT_GUI';
+    if (k === 'LEFT_GUI')      return 'LEFT_CONTROL';
+    if (k === 'RIGHT_CONTROL') return 'RIGHT_GUI';
+    if (k === 'RIGHT_GUI')     return 'RIGHT_CONTROL';
+    return k;
+  });
+}
+
+// Only rewrites a label if it's literally naming the modifier it starts
+// with (e.g. "ctrl+b" → "cmd+b"), so labels like "cut" or "undo" — whose
+// kc still changes above — are left untouched.
+function swapModifierLabel(label) {
+  if (/^ctrl(\+|$)/i.test(label)) return label.replace(/^ctrl/i, 'cmd');
+  if (/^cmd(\+|$)/i.test(label))  return label.replace(/^cmd/i, 'ctrl');
+  return label;
+}
+
+function swapAllModifiers(items) {
+  items.forEach(it => {
+    it.kc = swapModifierKeycode(it.kc);
+    it.label = swapModifierLabel(it.label);
+    if (it.children && it.children.length) swapAllModifiers(it.children);
+  });
+}
+
 document.querySelectorAll('input[name="os"]').forEach(r => {
   r.addEventListener('change', () => {
+    const changed = currentOS !== r.value;
     currentOS = r.value;
+    if (changed) {
+      swapAllModifiers(shortcuts);
+      renderList();
+      setStatus('ok', `Swapped Ctrl ⇄ Cmd modifiers throughout your list for ${currentOS === 'mac' ? 'macOS' : 'Windows'}.`);
+    }
     document.getElementById('ref-key-col').textContent =
       currentOS === 'mac' ? 'Mac Key' : 'Windows Key';
     renderRefTable();
+    renderQuickAddSubmenus();
   });
+});
+
+// ── LOAD EXISTING CONFIG ─────────────────────────────────────────────────
+// Lets a previously-generated config.py be re-loaded so its timing values,
+// Mode 0 actions, and KEYCODES list populate this configurator instead of
+// starting from scratch. The file is plain Python, not JSON, so we do a
+// small best-effort textual conversion (strip comments, turn Keycode.X /
+// Mouse.X / ConsumerControlCode.X into quoted strings, True/False/None ->
+// true/false/null, drop trailing commas) and then JSON.parse the result.
+// This only understands the dict-based KEYCODES format this tool itself
+// generates — legacy tuple-style entries are not supported for upload.
+
+function setUploadStatus(type, msg) {
+  const el = document.getElementById('upload-status');
+  el.className = type;
+  el.textContent = msg;
+}
+
+// Remove Python "# ..." comments while respecting string literals, so a
+// '#' inside a label/symbol string isn't mistaken for a comment.
+function stripPyComments(text) {
+  let out = '';
+  let inStr = false, strCh = '';
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inStr) {
+      out += c;
+      if (c === '\\' && i + 1 < text.length) { out += text[i + 1]; i++; continue; }
+      if (c === strCh) inStr = false;
+      continue;
+    }
+    if (c === '"' || c === "'") { inStr = true; strCh = c; out += c; continue; }
+    if (c === '#') {
+      while (i < text.length && text[i] !== '\n') i++;
+      out += '\n';
+      continue;
+    }
+    out += c;
+  }
+  return out;
+}
+
+// Starting at the index of an opening '[' or '{', find the index of its
+// matching close, tracking nested brackets/braces and skipping over
+// string contents (and comments) so unrelated punctuation doesn't confuse it.
+function findMatchingBracket(text, openIdx) {
+  const stack = [];
+  let inStr = false, strCh = '';
+  for (let i = openIdx; i < text.length; i++) {
+    const c = text[i];
+    if (inStr) {
+      if (c === '\\') { i++; continue; }
+      if (c === strCh) inStr = false;
+      continue;
+    }
+    if (c === '"' || c === "'") { inStr = true; strCh = c; continue; }
+    if (c === '#') { while (i < text.length && text[i] !== '\n') i++; continue; }
+    if (c === '[' || c === '{') stack.push(c);
+    else if (c === ']' || c === '}') {
+      stack.pop();
+      if (stack.length === 0) return i;
+    }
+  }
+  return -1;
+}
+
+// Turn a Python dict/list literal (as sliced from the file) into a string
+// that JSON.parse can read.
+function pyLiteralToJson(text) {
+  let t = stripPyComments(text);
+  t = t.replace(/\b(?:Keycode|Mouse|ConsumerControlCode)\.([A-Za-z0-9_]+)\b/g, '"$1"');
+  t = t.replace(/\bTrue\b/g, 'true').replace(/\bFalse\b/g, 'false').replace(/\bNone\b/g, 'null');
+  t = t.replace(/'([^'\\]*)'/g, '"$1"');
+  t = t.replace(/,\s*([\]}])/g, '$1');
+  return t;
+}
+
+function parseConfigPy(text) {
+  const result = { warnings: [] };
+
+  const numMatch = (name) => {
+    const m = text.match(new RegExp(name + '\\s*=\\s*([\\d.]+)'));
+    return m ? parseFloat(m[1]) : null;
+  };
+  const strMatch = (name) => {
+    const m = text.match(new RegExp(name + '\\s*=\\s*["\']([^"\']*)["\']'));
+    return m ? m[1] : null;
+  };
+
+  result.hold       = numMatch('HOLD_TO_SCAN_SECS');
+  result.scan       = numMatch('SCAN_INTERVAL_SECS');
+  result.shortPress = numMatch('MAX_SHORT_PRESS_SECS');
+  result.debounce   = numMatch('DEBOUNCE_TIME');
+  result.dblClick   = numMatch('DOUBLE_CLICK_WINDOW');
+  result.swHold     = numMatch('SWITCH_HOLD_EXIT_SECS');
+
+  result.sw1Label  = strMatch('SWITCH1_LABEL');
+  result.sw2Label  = strMatch('SWITCH2_LABEL');
+  result.sw1Symbol = strMatch('SWITCH1_SYMBOL');
+  result.sw2Symbol = strMatch('SWITCH2_SYMBOL');
+
+  function extractDict(varName) {
+    const m = new RegExp(varName + '\\s*=\\s*(\\{)').exec(text);
+    if (!m) return null;
+    const openIdx = m.index + m[0].length - 1;
+    const closeIdx = findMatchingBracket(text, openIdx);
+    if (closeIdx === -1) return null;
+    try { return JSON.parse(pyLiteralToJson(text.slice(openIdx, closeIdx + 1))); }
+    catch (e) { result.warnings.push(`Couldn't read ${varName}, leaving it as-is.`); return null; }
+  }
+
+  result.sw1Action = extractDict('SWITCH1_ACTION');
+  result.sw2Action = extractDict('SWITCH2_ACTION');
+
+  const kcMatch = /KEYCODES\s*=\s*(\[)/.exec(text);
+  if (!kcMatch) {
+    result.error = 'No KEYCODES list found — is this a config.py from this tool?';
+    return result;
+  }
+  const openIdx = kcMatch.index + kcMatch[0].length - 1;
+  const closeIdx = findMatchingBracket(text, openIdx);
+  if (closeIdx === -1) {
+    result.error = 'The KEYCODES list brackets don\u2019t match — the file may be truncated or edited by hand.';
+    return result;
+  }
+  const rawList = text.slice(openIdx, closeIdx + 1);
+  let list;
+  try {
+    list = JSON.parse(pyLiteralToJson(rawList));
+  } catch (e) {
+    result.error = 'Couldn\u2019t parse the KEYCODES list — it may use a format (like legacy tuple entries) this tool can\u2019t read.';
+    return result;
+  }
+  if (!Array.isArray(list)) {
+    result.error = 'KEYCODES isn\u2019t a list in this file.';
+    return result;
+  }
+  result.keycodes = list;
+
+  // Detect target OS from whichever modifier shows up more across the file.
+  const guiCount  = (text.match(/LEFT_GUI|RIGHT_GUI/g) || []).length;
+  const ctrlCount = (text.match(/LEFT_CONTROL|RIGHT_CONTROL/g) || []).length;
+  result.os = guiCount >= ctrlCount ? 'mac' : 'windows';
+
+  return result;
+}
+
+// Push a parsed Mode 0 action dict into the sw1/sw2 controls, then refresh
+// the auto-suggested label/symbol so they reflect what was actually loaded.
+function applyMode0Action(sw, action) {
+  if (!action || typeof action !== 'object') return;
+  const type = ['key','mouse_click','mouse_scroll','mouse_move','media'].includes(action.type)
+    ? action.type : 'key';
+  document.getElementById('sw' + sw + '-type').value = type;
+  updateMode0Fields(sw);
+
+  if (type === 'key') {
+    const keys = Array.isArray(action.keys) && action.keys.length ? action.keys.slice() : ['ENTER'];
+    const mainKey = keys[keys.length - 1];
+    const modStr = keys.slice(0, -1).join(',');
+    const modSel = document.getElementById('sw' + sw + '-mod');
+    const keySel = document.getElementById('sw' + sw + '-key');
+    if (modSel) modSel.value = MODE0_MOD_LIST.some(m => m.value === modStr) ? modStr : '';
+    if (keySel) keySel.value = mainKey;
+  } else if (type === 'mouse_click') {
+    const el = document.getElementById('sw' + sw + '-mbtn');
+    if (el) el.value = action.button || 'LEFT_BUTTON';
+  } else if (type === 'mouse_scroll') {
+    const el = document.getElementById('sw' + sw + '-scroll');
+    if (el) el.value = (typeof action.y === 'number') ? action.y : 1;
+  } else if (type === 'mouse_move') {
+    const xEl = document.getElementById('sw' + sw + '-movex');
+    const yEl = document.getElementById('sw' + sw + '-movey');
+    if (xEl) xEl.value = (typeof action.x === 'number') ? action.x : 0;
+    if (yEl) yEl.value = (typeof action.y === 'number') ? action.y : 0;
+  } else if (type === 'media') {
+    const el = document.getElementById('sw' + sw + '-media');
+    if (el) el.value = action.code || 'PLAY_PAUSE';
+  }
+  suggestMode0Display(sw);
+}
+
+// Convert one parsed KEYCODES entry into this app's internal shortcut
+// shape. Only one level of submenu nesting is supported by the UI, so a
+// child that itself has a "submenu" is flattened (its own children are
+// dropped) and reported back via the flattened() callback.
+function convertParsedItem(raw, allowSubmenu, flattened) {
+  const entry = {
+    id: nid(),
+    label: (raw && raw.label != null) ? String(raw.label) : '',
+    kc: (raw && Array.isArray(raw.kc)) ? raw.kc.slice() : [],
+    symbol: (raw && raw.symbol != null) ? String(raw.symbol) : '?',
+    custom: true,
+  };
+  if (allowSubmenu && raw && Array.isArray(raw.submenu) && raw.submenu.length) {
+    entry.isSubmenu = true;
+    entry.autoExit = !!raw.auto_exit;
+    entry.children = raw.submenu.map(c => {
+      if (c && Array.isArray(c.submenu) && c.submenu.length) flattened();
+      return convertParsedItem(c, false, flattened);
+    });
+  }
+  return entry;
+}
+
+function applyParsedConfig(parsed, fileName) {
+  if (parsed.error) {
+    setUploadStatus('err', `⚠ Couldn't load "${fileName}": ${parsed.error}`);
+    return;
+  }
+
+  if (parsed.hold != null)       document.getElementById('hold_to_scan').value = parsed.hold;
+  if (parsed.scan != null)       document.getElementById('scan_interval').value = parsed.scan;
+  if (parsed.shortPress != null) document.getElementById('max_short_press').value = parsed.shortPress;
+  if (parsed.debounce != null)   document.getElementById('debounce').value = parsed.debounce;
+  if (parsed.dblClick != null)   document.getElementById('dbl_click_window').value = parsed.dblClick;
+  if (parsed.swHold != null)     document.getElementById('switch_hold_exit').value = parsed.swHold;
+
+  currentOS = parsed.os === 'windows' ? 'windows' : 'mac';
+  document.getElementById(currentOS === 'mac' ? 'os-mac' : 'os-win').checked = true;
+  document.getElementById('ref-key-col').textContent = currentOS === 'mac' ? 'Mac Key' : 'Windows Key';
+
+  applyMode0Action(1, parsed.sw1Action);
+  applyMode0Action(2, parsed.sw2Action);
+  if (parsed.sw1Label)  { const el = document.getElementById('sw1-label');  el.value = parsed.sw1Label;  el.dataset.auto = 'false'; }
+  if (parsed.sw2Label)  { const el = document.getElementById('sw2-label');  el.value = parsed.sw2Label;  el.dataset.auto = 'false'; }
+  if (parsed.sw1Symbol) { const el = document.getElementById('sw1-symbol'); el.value = parsed.sw1Symbol; el.dataset.auto = 'false'; }
+  if (parsed.sw2Symbol) { const el = document.getElementById('sw2-symbol'); el.value = parsed.sw2Symbol; el.dataset.auto = 'false'; }
+
+  let flattenedCount = 0;
+  shortcuts = (parsed.keycodes || []).map(item => convertParsedItem(item, true, () => flattenedCount++));
+  expandedSet = new Set(shortcuts.filter(s => s.isSubmenu).map(s => s.id));
+  childAddTarget = null;
+  document.getElementById('child-add-banner').style.display = 'none';
+  document.querySelector('.add-options').style.display = '';
+  document.getElementById('custom-panel').style.display = 'none';
+  document.getElementById('toggle-custom-btn').setAttribute('aria-expanded', 'false');
+  resetAddOptions();
+
+  const ta = document.getElementById('output-code');
+  ta.value = '';
+  ta.classList.remove('visible');
+  document.getElementById('dl-btn').classList.remove('visible');
+
+  renderRefTable();
+  renderQuickAddSubmenus();
+  renderList(null);
+
+  const submenuCount = shortcuts.filter(s => s.isSubmenu).length;
+  const totalItems = shortcuts.reduce((n, s) => n + 1 + (s.children ? s.children.length : 0), 0);
+  let msg = `✓ Loaded "${fileName}" — ${shortcuts.length} top-level entr${shortcuts.length !== 1 ? 'ies' : 'y'}` +
+            ` (${submenuCount} submenu${submenuCount !== 1 ? 's' : ''}), ${totalItems} item${totalItems !== 1 ? 's' : ''} total.` +
+            ` Detected ${currentOS === 'mac' ? 'macOS' : 'Windows'}.`;
+  if (flattenedCount) {
+    msg += ` Note: ${flattenedCount} nested sub-submenu${flattenedCount !== 1 ? 's were' : ' was'} flattened — only one submenu level is supported here.`;
+  }
+  if (parsed.warnings.length) msg += ' ' + parsed.warnings.join(' ');
+  setUploadStatus('ok', msg);
+}
+
+document.getElementById('config-upload').addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    applyParsedConfig(parseConfigPy(String(reader.result)), file.name);
+    e.target.value = '';
+  };
+  reader.onerror = () => setUploadStatus('err', `⚠ Couldn't read "${file.name}".`);
+  reader.readAsText(file);
 });
 
 // ── REFERENCE TABLE ────────────────────────────────────────────────────────
@@ -736,8 +2013,8 @@ function renderRefTable() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${sc.fn}</td>
-      <td><kbd style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:1px 6px;font-size:0.7rem;font-family:'IBM Plex Mono',monospace;color:var(--text)">${osData.label}</kbd></td>
-      <td><button class="add-ref-btn" data-idx="${i}">＋ add</button></td>
+      <td><kbd style="background:var(--cfg-surface);border:1px solid var(--cfg-border);border-radius:3px;padding:2px 8px;font-size:var(--text-xs);font-family:'Atkinson Hyperlegible', Arial, sans-serif;color:var(--cfg-text)">${osData.label}</kbd></td>
+      <td><button class="add-ref-btn" data-idx="${i}" aria-label="Add ${sc.fn} shortcut">＋ add</button></td>
     `;
     tbody.appendChild(tr);
   });
@@ -746,83 +2023,572 @@ function renderRefTable() {
       const sc = BLOCKLY_SHORTCUTS[parseInt(btn.dataset.idx)];
       const d  = currentOS === 'mac' ? sc.mac : sc.win;
       const sym = d.label.split('+').pop().trim().slice(0,3).toUpperCase();
-      shortcuts.push({ label: d.label, kc: [...d.kc], symbol: sym, custom: false });
-      renderList();
-      document.getElementById('keycode-list').lastElementChild
-        ?.scrollIntoView({ behavior:'smooth', block:'nearest' });
-      setStatus('ok', `✓ Added "${sc.fn}"`);
+      const addingToChild = childAddTarget !== null;
+      addEntryToList(buildEntry(d.label, [...d.kc], sym, false));
+      if (!addingToChild) resetAddOptions();
+      requestAnimationFrame(() => {
+        document.getElementById('keycode-list').lastElementChild
+          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+      setStatus('ok', `✓ Added "${sc.fn}"${addingToChild ? ' to submenu' : ''}`);
     });
   });
 }
 
 // ── ACTIVE LIST ────────────────────────────────────────────────────────────
-function renderList() {
+// focusTarget: after re-render, focus this descriptor:
+//   { scope:'top', idx, btn:'up'|'down'|'del' }
+//   { scope:'child', parentIdx, idx, btn:'up'|'down'|'del'|'extract' }
+let focusTarget = null;
+
+function renderList(ft) {
+  if (ft !== undefined) focusTarget = ft;
   const list = document.getElementById('keycode-list');
   list.innerHTML = '';
+  const total = shortcuts.length;
+  const submenuTargets = shortcuts.filter(s => s.isSubmenu);
+
   shortcuts.forEach((sc, i) => {
+    const block = document.createElement('div');
+    block.className = 'submenu-block';
+    block.appendChild(buildTopRow(sc, i, total, submenuTargets));
+
+    if (sc.isSubmenu) {
+      block.appendChild(buildSubmenuMeta(sc, i));
+      if (expandedSet.has(sc.id)) {
+        block.appendChild(buildChildList(sc, i));
+      }
+    }
+
+    list.appendChild(block);
+  });
+
+  // ── Restore focus after re-render ────────────────────────
+  if (focusTarget !== null) {
+    const ft2 = focusTarget;
+    focusTarget = null;
+    requestAnimationFrame(() => restoreFocus(ft2));
+  }
+}
+
+// ── ROW BUILDERS ────────────────────────────────────────────────────────────
+function buildTopRow(sc, i, total, submenuTargets) {
+  const row = document.createElement('div');
+  row.className = 'keycode-item' + (sc.custom ? ' is-custom' : '') + (sc.isSubmenu ? ' is-submenu' : '');
+  row.setAttribute('role', 'listitem');
+  row.setAttribute('aria-label',
+    `Position ${i + 1} of ${total}: ${sc.label}` + (sc.isSubmenu ? `, submenu entry point with ${sc.children.length} items` : ''));
+  row.dataset.idx = i;
+
+  // ── Move buttons (Up / Down) ──────────────────────────
+  const moveBtns = document.createElement('div');
+  moveBtns.className = 'move-btns';
+  moveBtns.setAttribute('aria-label', `Move ${sc.label}`);
+
+  const upBtn = document.createElement('button');
+  upBtn.className = 'move-btn move-up';
+  upBtn.setAttribute('aria-label', `Move ${sc.label} up`);
+  upBtn.dataset.scope = 'top'; upBtn.dataset.idx = i; upBtn.dataset.move = 'up';
+  upBtn.innerHTML = '▲';
+  if (i === 0) upBtn.disabled = true;
+  upBtn.addEventListener('click', () => moveShortcut(i, -1, 'up'));
+
+  const downBtn = document.createElement('button');
+  downBtn.className = 'move-btn move-down';
+  downBtn.setAttribute('aria-label', `Move ${sc.label} down`);
+  downBtn.dataset.scope = 'top'; downBtn.dataset.idx = i; downBtn.dataset.move = 'down';
+  downBtn.innerHTML = '▼';
+  if (i === total - 1) downBtn.disabled = true;
+  downBtn.addEventListener('click', () => moveShortcut(i, 1, 'down'));
+
+  moveBtns.append(upBtn, downBtn);
+
+  // ── Key label (+ submenu tag) ──────────────────────────
+  let keyEl;
+  if (sc.custom) {
+    keyEl = document.createElement('input');
+    keyEl.type = 'text';
+    keyEl.className = 'key-text-input';
+    keyEl.value = sc.label;
+    keyEl.setAttribute('aria-label', `Label for shortcut ${i + 1}`);
+    keyEl.addEventListener('input', () => { shortcuts[i].label = keyEl.value; });
+  } else {
+    keyEl = document.createElement('span');
+    keyEl.style.cssText = 'font-size:var(--text-sm);color:var(--cfg-text);overflow:hidden;white-space:nowrap;text-overflow:ellipsis';
+    keyEl.textContent = sc.label;
+    keyEl.title = sc.kc.map(k => 'Keycode.' + k).join(', ');
+  }
+  let labelCell = keyEl;
+  if (sc.isSubmenu) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;gap:1px;overflow:hidden';
+    const tag = document.createElement('span');
+    tag.className = 'submenu-tag';
+    tag.textContent = `⧉ submenu · ${sc.children.length} item${sc.children.length !== 1 ? 's' : ''}${sc.autoExit ? ' · auto-exit' : ''}`;
+    wrap.append(keyEl, tag);
+    labelCell = wrap;
+  }
+
+  // ── Symbol input ──────────────────────────────────────
+  const sym = document.createElement('input');
+  sym.type = 'text';
+  sym.className = 'symbol-input';
+  sym.maxLength = 4;
+  sym.value = sc.symbol;
+  sym.title = 'TFT display symbol';
+  sym.setAttribute('aria-label', `TFT symbol for ${sc.label}`);
+  sym.addEventListener('input', () => { shortcuts[i].symbol = sym.value; });
+
+  // ── "Move into submenu" select (plain items only) ─────
+  const nestCell = document.createElement('div');
+  if (!sc.isSubmenu && submenuTargets.length) {
+    const sel = document.createElement('select');
+    sel.className = 'nest-select';
+    sel.setAttribute('aria-label', `Move ${sc.label} into a submenu`);
+    const optTop = document.createElement('option');
+    optTop.value = ''; optTop.textContent = 'top level';
+    sel.appendChild(optTop);
+    submenuTargets.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id; opt.textContent = `▸ ${t.label}`;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', () => {
+      if (sel.value) nestShortcut(i, Number(sel.value));
+    });
+    nestCell.appendChild(sel);
+  }
+
+  // ── Delete button ─────────────────────────────────────
+  const del = document.createElement('button');
+  del.className = 'icon-btn';
+  del.dataset.scope = 'top'; del.dataset.idx = i; del.dataset.action = 'del';
+  const childNote = sc.isSubmenu && sc.children.length
+    ? ` and its ${sc.children.length} submenu item${sc.children.length !== 1 ? 's' : ''}` : '';
+  del.setAttribute('aria-label', `Remove ${sc.label}${childNote}`);
+  del.textContent = '✕';
+  del.addEventListener('click', () => {
+    const removedChildren = sc.children ? sc.children.length : 0;
+    shortcuts.splice(i, 1);
+    renderList({ scope: 'top', idx: Math.min(i, shortcuts.length - 1), btn: 'up' });
+    setStatus('ok', `Removed "${sc.label}"${removedChildren ? ` and ${removedChildren} submenu item${removedChildren !== 1 ? 's' : ''}` : ''}.`);
+  });
+
+  row.append(moveBtns, labelCell, sym, nestCell, del);
+
+  // Drag-and-drop: reorder normally, or drop onto a submenu row to nest into it
+  row.draggable = true;
+  row.addEventListener('dragstart', e => { dragSrcIdx = i; row.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+  row.addEventListener('dragend',   () => { row.classList.remove('dragging'); document.querySelectorAll('.keycode-item').forEach(r => r.classList.remove('drag-over')); });
+  row.addEventListener('dragover',  e => { e.preventDefault(); document.querySelectorAll('.keycode-item').forEach(r => r.classList.remove('drag-over')); row.classList.add('drag-over'); });
+  row.addEventListener('drop', e => {
+    e.preventDefault();
+    if (dragSrcIdx === null || dragSrcIdx === i) return;
+    if (sc.isSubmenu) {
+      const [item] = shortcuts.splice(dragSrcIdx, 1);
+      const targetIdxNow = shortcuts.findIndex(s => s.id === sc.id);
+      shortcuts[targetIdxNow].children.push(item);
+      expandedSet.add(sc.id);
+      renderList();
+      setStatus('ok', `Moved "${item.label}" into "${sc.label}" submenu.`);
+    } else {
+      const m = shortcuts.splice(dragSrcIdx, 1)[0];
+      shortcuts.splice(i, 0, m);
+      renderList();
+    }
+  });
+
+  return row;
+}
+
+function buildSubmenuMeta(sc, i) {
+  const meta = document.createElement('div');
+  meta.className = 'submenu-meta';
+
+  const isOpen = expandedSet.has(sc.id);
+  const toggleBtn = document.createElement('button');
+  toggleBtn.type = 'button';
+  toggleBtn.className = 'expand-toggle';
+  toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  toggleBtn.textContent = isOpen ? '▾ Hide items' : '▸ Show items';
+  toggleBtn.addEventListener('click', () => {
+    if (expandedSet.has(sc.id)) expandedSet.delete(sc.id); else expandedSet.add(sc.id);
+    renderList();
+  });
+
+  const autoLabel = document.createElement('label');
+  const autoBox = document.createElement('input');
+  autoBox.type = 'checkbox';
+  autoBox.checked = !!sc.autoExit;
+  autoBox.setAttribute('aria-label', `Auto-exit ${sc.label} submenu after a selection`);
+  autoBox.addEventListener('change', () => { shortcuts[i].autoExit = autoBox.checked; renderList(); });
+  autoLabel.append(autoBox, document.createTextNode('Auto-exit after selection'));
+
+  const addChildBtn = document.createElement('button');
+  addChildBtn.type = 'button';
+  addChildBtn.className = 'add-child-btn';
+  addChildBtn.textContent = '＋ Add item to this submenu';
+  addChildBtn.addEventListener('click', () => startChildAdd(sc.id));
+
+  meta.append(toggleBtn, autoLabel, addChildBtn);
+  return meta;
+}
+
+function buildChildList(sc, parentIdx) {
+  const wrap = document.createElement('div');
+  wrap.className = 'child-list';
+  wrap.setAttribute('role', 'list');
+  wrap.setAttribute('aria-label', `Items inside ${sc.label} submenu`);
+
+  if (!sc.children.length) {
+    const empty = document.createElement('p');
+    empty.className = 'child-empty-note';
+    empty.textContent = 'No items yet — use "Add item to this submenu" above, or drag a top-level shortcut onto this row.';
+    wrap.appendChild(empty);
+    return wrap;
+  }
+
+  sc.children.forEach((child, ci) => {
     const row = document.createElement('div');
-    row.className = 'keycode-item' + (sc.custom ? ' is-custom' : '');
-    row.draggable = true;
+    row.className = 'keycode-item child-item' + (child.custom ? ' is-custom' : '');
+    row.setAttribute('role', 'listitem');
+    row.setAttribute('aria-label', `Submenu item ${ci + 1} of ${sc.children.length}: ${child.label}`);
 
-    const handle = document.createElement('span');
-    handle.className = 'drag-handle';
-    handle.textContent = '⠿';
+    const moveBtns = document.createElement('div');
+    moveBtns.className = 'move-btns';
+    const upBtn = document.createElement('button');
+    upBtn.className = 'move-btn'; upBtn.innerHTML = '▲';
+    upBtn.setAttribute('aria-label', `Move ${child.label} up within submenu`);
+    upBtn.dataset.scope = 'child'; upBtn.dataset.parentIdx = parentIdx; upBtn.dataset.idx = ci; upBtn.dataset.move = 'up';
+    if (ci === 0) upBtn.disabled = true;
+    upBtn.addEventListener('click', () => moveChild(parentIdx, ci, -1, 'up'));
 
-    const idx = document.createElement('span');
-    idx.className = 'idx';
-    idx.textContent = i;
+    const downBtn = document.createElement('button');
+    downBtn.className = 'move-btn'; downBtn.innerHTML = '▼';
+    downBtn.setAttribute('aria-label', `Move ${child.label} down within submenu`);
+    downBtn.dataset.scope = 'child'; downBtn.dataset.parentIdx = parentIdx; downBtn.dataset.idx = ci; downBtn.dataset.move = 'down';
+    if (ci === sc.children.length - 1) downBtn.disabled = true;
+    downBtn.addEventListener('click', () => moveChild(parentIdx, ci, 1, 'down'));
+    moveBtns.append(upBtn, downBtn);
 
     let keyEl;
-    if (sc.custom) {
+    if (child.custom) {
       keyEl = document.createElement('input');
-      keyEl.type = 'text';
-      keyEl.className = 'key-text-input';
-      keyEl.value = sc.label;
-      keyEl.addEventListener('input', () => { shortcuts[i].label = keyEl.value; });
+      keyEl.type = 'text'; keyEl.className = 'key-text-input'; keyEl.value = child.label;
+      keyEl.setAttribute('aria-label', `Label for submenu item ${ci + 1}`);
+      keyEl.addEventListener('input', () => { shortcuts[parentIdx].children[ci].label = keyEl.value; });
     } else {
       keyEl = document.createElement('span');
-      keyEl.style.cssText = 'font-size:0.75rem;color:var(--text);overflow:hidden;white-space:nowrap;text-overflow:ellipsis';
-      keyEl.textContent = sc.label;
-      keyEl.title = sc.kc.map(k => 'Keycode.'+k).join(', ');
+      keyEl.style.cssText = 'font-size:var(--text-sm);color:var(--cfg-text);overflow:hidden;white-space:nowrap;text-overflow:ellipsis';
+      keyEl.textContent = child.label;
+      keyEl.title = child.kc.map(k => 'Keycode.' + k).join(', ');
     }
 
     const sym = document.createElement('input');
-    sym.type = 'text';
-    sym.className = 'symbol-input';
-    sym.maxLength = 4;
-    sym.value = sc.symbol;
-    sym.title = 'TFT display symbol';
-    sym.addEventListener('input', () => { shortcuts[i].symbol = sym.value; });
+    sym.type = 'text'; sym.className = 'symbol-input'; sym.maxLength = 4; sym.value = child.symbol;
+    sym.setAttribute('aria-label', `TFT symbol for ${child.label}`);
+    sym.addEventListener('input', () => { shortcuts[parentIdx].children[ci].symbol = sym.value; });
+
+    const extract = document.createElement('button');
+    extract.className = 'icon-btn'; extract.textContent = '↥';
+    extract.title = 'Move to top level';
+    extract.setAttribute('aria-label', `Move ${child.label} out of submenu to top level`);
+    extract.dataset.scope = 'child'; extract.dataset.parentIdx = parentIdx; extract.dataset.idx = ci; extract.dataset.action = 'extract';
+    extract.addEventListener('click', () => extractChild(parentIdx, ci));
 
     const del = document.createElement('button');
-    del.className = 'icon-btn';
-    del.title = 'Remove';
-    del.textContent = '✕';
-    del.addEventListener('click', () => { shortcuts.splice(i,1); renderList(); });
+    del.className = 'icon-btn'; del.textContent = '✕';
+    del.setAttribute('aria-label', `Remove ${child.label} from submenu`);
+    del.dataset.scope = 'child'; del.dataset.parentIdx = parentIdx; del.dataset.idx = ci; del.dataset.action = 'del';
+    del.addEventListener('click', () => {
+      shortcuts[parentIdx].children.splice(ci, 1);
+      renderList({ scope: 'top', idx: parentIdx, btn: 'up' });
+    });
 
-    row.append(handle, keyEl, sym, del);
+    row.append(moveBtns, keyEl, sym, extract, del);
+    wrap.appendChild(row);
+  });
 
-    row.addEventListener('dragstart', e => { dragSrcIdx=i; row.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
-    row.addEventListener('dragend',   () => { row.classList.remove('dragging'); document.querySelectorAll('.keycode-item').forEach(r=>r.classList.remove('drag-over')); });
-    row.addEventListener('dragover',  e => { e.preventDefault(); document.querySelectorAll('.keycode-item').forEach(r=>r.classList.remove('drag-over')); row.classList.add('drag-over'); });
-    row.addEventListener('drop',      e => { e.preventDefault(); if(dragSrcIdx!==null && dragSrcIdx!==i){ const m=shortcuts.splice(dragSrcIdx,1)[0]; shortcuts.splice(i,0,m); renderList(); } });
+  return wrap;
+}
 
-    list.appendChild(row);
+// ── FOCUS RESTORATION ───────────────────────────────────────────────────────
+function restoreFocus(ft) {
+  let sel;
+  if (ft.scope === 'top') {
+    sel = `[data-scope="top"][data-idx="${ft.idx}"][data-move="${ft.btn}"], [data-scope="top"][data-idx="${ft.idx}"][data-action="${ft.btn}"]`;
+  } else {
+    sel = `[data-scope="child"][data-parent-idx="${ft.parentIdx}"][data-idx="${ft.idx}"][data-move="${ft.btn}"], [data-scope="child"][data-parent-idx="${ft.parentIdx}"][data-idx="${ft.idx}"][data-action="${ft.btn}"]`;
+  }
+  let el = document.querySelector(sel);
+  if (el && el.disabled) {
+    const alt = ft.btn === 'up' ? 'down' : (ft.btn === 'down' ? 'up' : null);
+    if (alt) el = document.querySelector(sel.replace(new RegExp(`"${ft.btn}"`, 'g'), `"${alt}"`));
+  }
+  if (el && !el.disabled) {
+    el.focus();
+    const rowEl = el.closest('.keycode-item');
+    if (rowEl) {
+      rowEl.classList.add('just-moved');
+      setTimeout(() => rowEl.classList.remove('just-moved'), 600);
+    }
+  }
+}
+
+// ── MOVE / NEST / EXTRACT ───────────────────────────────────────────────────
+function moveShortcut(fromIdx, direction, btn) {
+  const toIdx = fromIdx + direction;
+  if (toIdx < 0 || toIdx >= shortcuts.length) return;
+
+  const tmp = shortcuts[fromIdx];
+  shortcuts[fromIdx] = shortcuts[toIdx];
+  shortcuts[toIdx]   = tmp;
+
+  const label = shortcuts[toIdx].label;
+  const pos   = toIdx + 1;
+  const total = shortcuts.length;
+  const ann   = document.getElementById('move-announce');
+  ann.textContent = '';
+  requestAnimationFrame(() => {
+    ann.textContent = `${label} moved to position ${pos} of ${total}`;
+  });
+
+  renderList({ scope: 'top', idx: toIdx, btn });
+}
+
+function moveChild(parentIdx, ci, direction, btn) {
+  const kids = shortcuts[parentIdx].children;
+  const to = ci + direction;
+  if (to < 0 || to >= kids.length) return;
+  const tmp = kids[ci]; kids[ci] = kids[to]; kids[to] = tmp;
+  renderList({ scope: 'child', parentIdx, idx: to, btn });
+}
+
+function nestShortcut(idx, targetId) {
+  const item = shortcuts[idx];
+  if (!item || item.id === targetId) return;
+  shortcuts.splice(idx, 1);
+  const targetIdx = shortcuts.findIndex(s => s.id === targetId);
+  if (targetIdx === -1) { shortcuts.splice(idx, 0, item); return; }
+  shortcuts[targetIdx].children.push(item);
+  expandedSet.add(targetId);
+  renderList();
+  setStatus('ok', `Moved "${item.label}" into "${shortcuts[targetIdx].label}" submenu.`);
+}
+
+function extractChild(parentIdx, ci) {
+  const [item] = shortcuts[parentIdx].children.splice(ci, 1);
+  shortcuts.push(item);
+  renderList({ scope: 'top', idx: shortcuts.length - 1, btn: 'up' });
+  setStatus('ok', `Moved "${item.label}" to top level.`);
+}
+
+// ── ADD-OPTIONS (submenu / auto-exit checkboxes) & CHILD-ADD MODE ───────────
+function buildEntry(label, kc, symbol, custom) {
+  const entry = { id: nid(), label, kc, symbol, custom };
+  if (childAddTarget === null && document.getElementById('opt-submenu').checked) {
+    entry.isSubmenu = true;
+    entry.autoExit  = document.getElementById('opt-autoexit').checked;
+    entry.children  = [];
+  }
+  return entry;
+}
+
+function addEntryToList(entry) {
+  if (childAddTarget !== null) {
+    const parent = shortcuts.find(s => s.id === childAddTarget);
+    if (parent) {
+      parent.children.push(entry);
+      expandedSet.add(parent.id);
+      renderList({ scope: 'top', idx: shortcuts.indexOf(parent), btn: 'up' });
+      return;
+    }
+  }
+  shortcuts.push(entry);
+  renderList({ scope: 'top', idx: shortcuts.length - 1, btn: 'up' });
+}
+
+function resetAddOptions() {
+  document.getElementById('opt-submenu').checked = false;
+  document.getElementById('opt-autoexit').checked = false;
+  document.getElementById('opt-autoexit-wrap').style.display = 'none';
+  const nokey = document.getElementById('custom-nokey');
+  if (nokey && nokey.checked) { nokey.checked = false; toggleFolderMode(); }
+}
+
+document.getElementById('opt-submenu').addEventListener('change', e => {
+  document.getElementById('opt-autoexit-wrap').style.display = e.target.checked ? '' : 'none';
+  if (!e.target.checked) document.getElementById('opt-autoexit').checked = false;
+});
+
+// "No keystroke" folder toggle in the custom builder — a folder always
+// becomes a submenu entry point (children can't themselves be folders,
+// so this row is hidden entirely while adding into an existing submenu).
+function toggleFolderMode() {
+  const isFolder = document.getElementById('custom-nokey').checked;
+  document.getElementById('custom-mod-row').style.display = isFolder ? 'none' : '';
+  document.getElementById('custom-key-row').style.display = isFolder ? 'none' : '';
+  document.getElementById('custom-folder-row').classList.toggle('visible', isFolder);
+  const optSubmenu = document.getElementById('opt-submenu');
+  if (isFolder) {
+    optSubmenu.checked = true;
+    optSubmenu.disabled = true;
+    document.getElementById('opt-autoexit-wrap').style.display = '';
+  } else {
+    optSubmenu.disabled = false;
+  }
+}
+
+// Briefly highlights an element (and lets focus land there) so it's obvious
+// where a shortcut/preset the user is about to pick will actually be added.
+function flashPanel(el) {
+  if (!el) return;
+  el.classList.remove('highlight-target');
+  void el.offsetWidth; // restart the animation if it's already flashing
+  el.classList.add('highlight-target');
+  setTimeout(() => el.classList.remove('highlight-target'), 1500);
+}
+
+function startChildAdd(targetId) {
+  childAddTarget = targetId;
+  const target = shortcuts.find(s => s.id === targetId);
+  document.getElementById('child-add-target-label').textContent = target ? target.label : '';
+  document.getElementById('child-add-banner').style.display = 'flex';
+  document.getElementById('opt-submenu').checked = false;
+  document.getElementById('opt-autoexit-wrap').style.display = 'none';
+  document.querySelector('.add-options').style.display = 'none';
+  const nokeyRow = document.getElementById('custom-nokey-row');
+  if (nokeyRow) {
+    nokeyRow.style.display = 'none';
+    document.getElementById('custom-nokey').checked = false;
+    toggleFolderMode();
+  }
+
+  // Open the Custom Keypress Builder and jump focus there, so it's clear
+  // exactly where the next shortcut you build will be added.
+  const customPanel = document.getElementById('custom-panel');
+  customPanel.style.display = '';
+  document.getElementById('toggle-custom-btn').setAttribute('aria-expanded', 'true');
+  flashPanel(customPanel);
+  requestAnimationFrame(() => {
+    customPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('custom-mod')?.focus();
   });
 }
 
-// ── ADD PRESET ─────────────────────────────────────────────────────────────
-function addPresetShortcut() {
-  const sc = BLOCKLY_SHORTCUTS[0];
-  const d  = currentOS === 'mac' ? sc.mac : sc.win;
-  shortcuts.push({ label: d.label, kc: [...d.kc], symbol: d.label[0].toUpperCase(), custom: false });
-  renderList();
+function endChildAdd() {
+  childAddTarget = null;
+  document.getElementById('child-add-banner').style.display = 'none';
+  document.querySelector('.add-options').style.display = '';
+  const nokeyRow = document.getElementById('custom-nokey-row');
+  if (nokeyRow) nokeyRow.style.display = '';
+}
+document.getElementById('child-add-done-btn').addEventListener('click', endChildAdd);
+
+// ── PRESET REFERENCE FOCUS ──────────────────────────────────────────────────
+// "+ Add from presets" used to silently add a hardcoded shortcut. Instead,
+// jump the user to the Shortcut Reference panel (in the sidebar) so they can
+// see and pick exactly which shortcut to add — the add-ref-btn handlers
+// already respect childAddTarget, so this works the same whether adding to
+// the top level or into a submenu.
+function focusPresetReference() {
+  const panel = document.getElementById('ref-panel');
+  flashPanel(panel);
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  panel.querySelector('.add-ref-btn')?.focus();
+  setStatus('ok', childAddTarget !== null
+    ? 'Pick a shortcut in the reference list to add it to this submenu.'
+    : 'Pick a shortcut in the reference list to add it to your list.');
 }
 
-// ── CUSTOM FORM ────────────────────────────────────────────────────────────
+// ── QUICK-ADD SUBMENU PRESETS ───────────────────────────────────────────────
+const PRESET_SUBMENUS = [
+  {
+    name: "Area Select (0–5)",
+    mac: { label: "cmd+b",  kc: ["LEFT_GUI", "B"] },
+    win: { label: "ctrl+b", kc: ["LEFT_CONTROL", "B"] },
+    symbol: "B",
+    autoExit: true,
+    children: [
+      { label: "0", mac: ["ZERO"],  win: ["ZERO"],  symbol: "0" },
+      { label: "1", mac: ["ONE"],   win: ["ONE"],   symbol: "1" },
+      { label: "2", mac: ["TWO"],   win: ["TWO"],   symbol: "2" },
+      { label: "3", mac: ["THREE"], win: ["THREE"], symbol: "3" },
+      { label: "4", mac: ["FOUR"],  win: ["FOUR"],  symbol: "4" },
+      { label: "5", mac: ["FIVE"],  win: ["FIVE"],  symbol: "5" },
+    ]
+  },
+  {
+    // The on-screen menu this opens doesn't respond to direct letter
+    // shortcuts — only arrow-key navigation + Enter. No auto-exit.
+    name: "Context Menu (arrow nav)",
+    mac: { label: "cmd+enter",  kc: ["LEFT_GUI", "ENTER"] },
+    win: { label: "ctrl+enter", kc: ["LEFT_CONTROL", "ENTER"] },
+    symbol: "ENT",
+    autoExit: false,
+    children: [
+      { label: "arrow down", mac: ["DOWN_ARROW"], win: ["DOWN_ARROW"], symbol: "D" },
+      { label: "enter",      mac: ["ENTER"],      win: ["ENTER"],      symbol: "e" },
+      { label: "arrow up",   mac: ["UP_ARROW"],   win: ["UP_ARROW"],   symbol: "U" },
+    ]
+  },
+  {
+    // No keystroke on the entry point itself — a pure organisational folder.
+    name: "Block Actions",
+    mac: { label: "Block Actions", kc: [] },
+    win: { label: "Block Actions", kc: [] },
+    symbol: "BLK",
+    autoExit: true,
+    children: [
+      { label: "cut",       mac: ["LEFT_GUI", "X"], win: ["LEFT_CONTROL", "X"],              symbol: "X"  },
+      { label: "copy",      mac: ["LEFT_GUI", "C"], win: ["LEFT_CONTROL", "C"],              symbol: "C"  },
+      { label: "paste",     mac: ["LEFT_GUI", "V"], win: ["LEFT_CONTROL", "V"],              symbol: "V"  },
+      { label: "duplicate", mac: ["D"],             win: ["D"],                              symbol: "D"  },
+      { label: "delete",    mac: ["BACKSPACE"],     win: ["BACKSPACE"],                      symbol: "BS" },
+      { label: "undo",      mac: ["LEFT_GUI", "Z"], win: ["LEFT_CONTROL", "Z"],              symbol: "U"  },
+      { label: "redo",      mac: ["LEFT_GUI", "LEFT_SHIFT", "Z"], win: ["LEFT_CONTROL", "LEFT_SHIFT", "Z"], symbol: "R" },
+    ]
+  }
+];
+
+function addPresetSubmenu(pIdx) {
+  const p = PRESET_SUBMENUS[pIdx];
+  const d = currentOS === 'mac' ? p.mac : p.win;
+  const entry = {
+    id: nid(), label: d.label, kc: [...d.kc], symbol: p.symbol, custom: false,
+    isSubmenu: true, autoExit: p.autoExit,
+    children: p.children.map(c => ({
+      id: nid(), label: c.label, kc: [...(currentOS === 'mac' ? c.mac : c.win)], symbol: c.symbol, custom: false
+    }))
+  };
+  shortcuts.push(entry);
+  expandedSet.add(entry.id);
+  renderList({ scope: 'top', idx: shortcuts.length - 1, btn: 'up' });
+  setStatus('ok', `✓ Added "${p.name}" submenu (${entry.children.length} items).`);
+}
+
+function renderQuickAddSubmenus() {
+  const row = document.getElementById('quick-add-row');
+  row.innerHTML = '';
+  PRESET_SUBMENUS.forEach((p, idx) => {
+    const d = currentOS === 'mac' ? p.mac : p.win;
+    const keyPart = d.kc.length ? `${d.label} → ` : `no keystroke → `;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'quick-add-btn';
+    btn.innerHTML = `<b>＋ ${p.name}</b><span>${keyPart}${p.children.length} items${p.autoExit ? ' · auto-exit' : ''}</span>`;
+    btn.addEventListener('click', () => addPresetSubmenu(idx));
+    row.appendChild(btn);
+  });
+}
+
+// ── CUSTOM FORM ───────────────────────────────────────────────────────────
 function toggleCustomForm() {
-  const p = document.getElementById('custom-panel');
-  p.style.display = p.style.display === 'none' ? '' : 'none';
+  const p   = document.getElementById('custom-panel');
+  const btn = document.getElementById('toggle-custom-btn');
+  const isHidden = p.style.display === 'none' || p.style.display === '';
+  p.style.display = isHidden ? '' : 'none';
+  btn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
 }
 
 const KEY_LABEL_MAP = {
@@ -830,51 +2596,98 @@ const KEY_LABEL_MAP = {
   ESCAPE:'esc', RIGHT_ARROW:'→', LEFT_ARROW:'←', UP_ARROW:'↑', DOWN_ARROW:'↓',
   HOME:'home', END:'end', PAGE_UP:'pgup', PAGE_DOWN:'pgdn', INSERT:'ins',
   ONE:'1',TWO:'2',THREE:'3',FOUR:'4',FIVE:'5',SIX:'6',SEVEN:'7',EIGHT:'8',NINE:'9',ZERO:'0',
+  FORWARD_SLASH:'/',
 };
 const MOD_LABEL_MAP = {
   LEFT_CONTROL:'ctrl', LEFT_SHIFT:'shift', LEFT_ALT:'alt', LEFT_GUI:'cmd'
 };
 
 function addCustomShortcut() {
-  const modVal = document.getElementById('custom-mod').value;
-  const keyVal = document.getElementById('custom-key').value;
-  const symVal = document.getElementById('custom-symbol').value;
+  const addingToChild = childAddTarget !== null;
+  const isFolder = !addingToChild && document.getElementById('custom-nokey').checked;
 
-  const mods    = modVal ? modVal.split(',') : [];
-  const kc      = [...mods, keyVal];
-  const modStr  = mods.map(m => MOD_LABEL_MAP[m] || m.toLowerCase()).join('+');
-  const keyStr  = KEY_LABEL_MAP[keyVal] || keyVal.toLowerCase();
-  const label   = modStr ? `${modStr}+${keyStr}` : keyStr;
-  const symbol  = symVal || keyStr.slice(0,3).toUpperCase();
+  let label, kc, symbol;
+  if (isFolder) {
+    const symVal = document.getElementById('custom-symbol').value;
+    label  = document.getElementById('custom-folder-label').value.trim() || 'Folder';
+    kc     = [];
+    symbol = symVal || label.slice(0,3).toUpperCase();
+  } else {
+    const modVal = document.getElementById('custom-mod').value;
+    const keyVal = document.getElementById('custom-key').value;
+    const symVal = document.getElementById('custom-symbol').value;
 
-  shortcuts.push({ label, kc, symbol, custom: true });
-  renderList();
+    const mods   = modVal ? modVal.split(',') : [];
+    kc     = [...mods, keyVal];
+    const modStr = mods.map(m => MOD_LABEL_MAP[m] || m.toLowerCase()).join('+');
+    const keyStr = KEY_LABEL_MAP[keyVal] || keyVal.toLowerCase();
+    label  = modStr ? `${modStr}+${keyStr}` : keyStr;
+    symbol = symVal || keyStr.slice(0,3).toUpperCase();
+  }
+
+  addEntryToList(buildEntry(label, kc, symbol, true));
   document.getElementById('custom-symbol').value = '';
-  document.getElementById('keycode-list').lastElementChild
-    ?.scrollIntoView({ behavior:'smooth', block:'nearest' });
-  setStatus('ok', `✓ Added custom: ${label}`);
+  document.getElementById('custom-folder-label').value = '';
+  if (!addingToChild) resetAddOptions();
+  requestAnimationFrame(() => {
+    document.getElementById('keycode-list').lastElementChild
+      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+  setStatus('ok', `✓ Added custom: ${label}${addingToChild ? ' to submenu' : ''}`);
 }
 
-// ── GENERATE ───────────────────────────────────────────────────────────────
+// ── GENERATE ──────────────────────────────────────────────────────────────
+function pyStr(s) {
+  return '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+}
+
+// Recursively emit one KEYCODES entry (and its submenu, if any) as a Python
+// dict literal — the new firmware format described in code.py.
+function emitItem(sc, indent) {
+  const pad = '    '.repeat(indent);
+  const kcList = sc.kc.map(k => `Keycode.${k}`).join(', ');
+  let out = `${pad}{"label": ${pyStr(sc.label)}, "kc": [${kcList}], "symbol": ${pyStr(sc.symbol || '?')}`;
+  if (sc.isSubmenu) {
+    out += `,\n${pad} "auto_exit": ${sc.autoExit ? 'True' : 'False'},\n${pad} "submenu": [\n`;
+    out += sc.children.map(c => emitItem(c, indent + 1)).join(',\n');
+    out += `\n${pad} ]}`;
+  } else {
+    out += '}';
+  }
+  return out;
+}
+
 function generateConfig() {
   const hold       = parseFloat(document.getElementById('hold_to_scan').value)    || 2.0;
   const scan       = parseFloat(document.getElementById('scan_interval').value)   || 1.0;
   const shortPress = parseFloat(document.getElementById('max_short_press').value) || 0.5;
   const debounce   = parseFloat(document.getElementById('debounce').value)        || 0.1;
+  const dblClick   = parseFloat(document.getElementById('dbl_click_window').value) || 0.4;
+  const swHold     = parseFloat(document.getElementById('switch_hold_exit').value) || 1.5;
 
-  if (!shortcuts.length) { setStatus('err','⚠ Add at least one shortcut.'); return; }
+  if (!shortcuts.length) { setStatus('err','⚠ Add at least one shortcut first.'); return; }
+
+  const emptySubmenu = shortcuts.find(s => s.isSubmenu && s.children.length === 0);
+  if (emptySubmenu) {
+    setStatus('err', `⚠ "${emptySubmenu.label}" is a submenu with no items yet — add at least one, or remove it.`);
+    return;
+  }
 
   const osLabel = currentOS === 'mac' ? 'macOS' : 'Windows';
   const ts      = new Date().toISOString().replace('T',' ').split('.')[0] + ' UTC';
+  const totalItems = shortcuts.reduce((n, s) => n + 1 + (s.children ? s.children.length : 0), 0);
 
-  const kcLines  = shortcuts.map(sc => {
-    const codes = sc.kc.map(k => `Keycode.${k}`).join(', ');
-    return `    ("${sc.label.replace(/'/g,"\\'")}",  [${codes}]),`;
-  }).join('\n');
+  const sw1Action = getMode0ActionPy(1);
+  const sw2Action = getMode0ActionPy(2);
+  const sw1Label  = (document.getElementById('sw1-label').value || 'Enter').replace(/"/g,'\\"');
+  const sw2Label  = (document.getElementById('sw2-label').value || 'Tab').replace(/"/g,'\\"');
+  const sw1Symbol = (document.getElementById('sw1-symbol').value || 'ENT').replace(/"/g,'\\"');
+  const sw2Symbol = (document.getElementById('sw2-symbol').value || 'TAB').replace(/"/g,'\\"');
 
-  const symLines = shortcuts.map(sc =>
-    `    "${sc.label.replace(/'/g,"\\'")}": "${(sc.symbol||'?').replace(/"/g,'\\"')}",`
-  ).join('\n');
+  const mouseImport    = needsMouse()    ? '\nfrom adafruit_hid.mouse import Mouse' : '';
+  const consumerImport = needsConsumer() ? '\nfrom adafruit_hid.consumer_control import ConsumerControl\nfrom adafruit_hid.consumer_control_code import ConsumerControlCode' : '';
+
+  const kcLines = shortcuts.map(sc => emitItem(sc, 1)).join(',\n');
 
   const out =
 `# config.py — Blockly Switch Interface Configuration
@@ -902,33 +2715,60 @@ MAX_SHORT_PRESS_SECS = ${shortPress.toFixed(2)}
 
 DEBOUNCE_TIME = ${debounce.toFixed(2)}
 
-# ── KEYBOARD SHORTCUTS (${osLabel}) ──────────────────
-# Order = scan / navigation sequence.
-# Multi-key combos: list modifiers first.
-# e.g. ("cmd+z", [Keycode.LEFT_GUI, Keycode.Z])
+# ── MODE 0 TIMING ────────────────────────────────────
 
-from adafruit_hid.keycode import Keycode
+DOUBLE_CLICK_WINDOW   = ${dblClick.toFixed(2)}
+SWITCH_HOLD_EXIT_SECS = ${swHold.toFixed(2)}
+
+# ── MODE 0: DIRECT SWITCH ACTIONS ────────────────────
+# SWITCH1_ACTION = A1 press,  SWITCH2_ACTION = A2 press
+# Types: key | mouse_click | mouse_scroll | mouse_move | media
+#
+# Examples:
+#   {"type": "key",          "keys": [Keycode.ENTER]}
+#   {"type": "mouse_click",  "button": Mouse.LEFT_BUTTON}
+#   {"type": "mouse_scroll", "y": 1}
+#   {"type": "media",        "code": ConsumerControlCode.PLAY_PAUSE}
+
+from adafruit_hid.keycode import Keycode${mouseImport}${consumerImport}
+
+SWITCH1_ACTION = ${sw1Action}
+SWITCH2_ACTION = ${sw2Action}
+
+SWITCH1_LABEL  = "${sw1Label}"
+SWITCH2_LABEL  = "${sw2Label}"
+SWITCH1_SYMBOL = "${sw1Symbol}"
+SWITCH2_SYMBOL = "${sw2Symbol}"
+
+# ── KEYBOARD SHORTCUTS (${osLabel}) ──────────────────
+# Order = scan / navigation sequence at the top level (Modes 1 & 2 only —
+# Mode 0 above is unaffected by this list).
+#
+# An entry with a "submenu" key is a SUBMENU ENTRY POINT: selecting it
+# sends its own "kc" first (e.g. to open an on-screen menu on the host) —
+# unless "kc" is empty, which marks a pure organisational folder with no
+# keystroke of its own — then the scan/nav list switches to just that
+# entry's "submenu" items. If "auto_exit" is True, picking one of those
+# items returns to this list automatically; if False, a "back" item is
+# added automatically so several submenu items can be picked in a row
+# before manually returning.
+#
+# Multi-key combos: list modifiers first, e.g.
+#   {"label": "cmd+z", "kc": [Keycode.LEFT_GUI, Keycode.Z], "symbol": "Z"}
 
 KEYCODES = [
 ${kcLines}
 ]
-
-# ── TFT DISPLAY SYMBOLS ──────────────────────────────
-# Shown on the 240×135 TFT. Keep to 1–3 characters.
-
-KEY_SYMBOLS = {
-${symLines}
-}
 `;
 
   const ta = document.getElementById('output-code');
   ta.value = out;
   ta.classList.add('visible');
   document.getElementById('dl-btn').classList.add('visible');
-  setStatus('ok', `✓ ${shortcuts.length} shortcut${shortcuts.length!==1?'s':''} · ${osLabel} — ready`);
+  setStatus('ok', `✓ ${shortcuts.length} top-level entr${shortcuts.length !== 1 ? 'ies' : 'y'} · ${totalItems} item${totalItems !== 1 ? 's' : ''} total · ${osLabel} — ready`);
 }
 
-// ── DOWNLOAD ───────────────────────────────────────────────────────────────
+// ── DOWNLOAD ──────────────────────────────────────────────────────────────
 function downloadConfig() {
   const c = document.getElementById('output-code').value;
   if (!c) return;
@@ -940,16 +2780,20 @@ function downloadConfig() {
   setStatus('ok','✓ config.py downloaded');
 }
 
-// ── STATUS ─────────────────────────────────────────────────────────────────
+// ── STATUS ────────────────────────────────────────────────────────────────
 function setStatus(type, msg) {
   const el = document.getElementById('status');
   el.className = type;
   el.textContent = msg;
 }
 
-// ── INIT ───────────────────────────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────────────────────
 renderRefTable();
-renderList();
+renderList(null);
+renderQuickAddSubmenus();
+updateMode0Fields(1);
+updateMode0Fields(2);
 </script>
+</main>
 </body>
 </html>
