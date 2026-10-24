@@ -227,12 +227,53 @@
 .mode-action-key  { color: var(--accent); min-width: 120px; flex-shrink: 0; font-weight: 500; }
 .mode-action-desc { color: var(--ink3); }
 
+/* ── MEDIA ── */
+.build-step { scroll-margin-top: calc(var(--nav-h) + 1rem); }
+/* Responsive 16:9 video wrapper */
+.video-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 1.25rem 0;
+  background: var(--tag-bg);
+}
+.video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+/* Media placeholders — swap for real embeds */
+.media-figure { margin: 1.25rem 0; }
+.media-figure figcaption { font-size: var(--text-sm); color: var(--ink3); margin-top: 0.5rem; }
+.media-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  text-align: center;
+  padding: 1.5rem;
+  width: 100%;
+  height: 100%;
+  border: 3px dashed var(--ink3);
+  border-radius: var(--radius);
+  background: repeating-linear-gradient(45deg, var(--tag-bg) 0 14px, var(--surface) 14px 28px);
+  color: var(--ink2);
+}
+.video-frame .media-placeholder { position: absolute; inset: 0; border: none; border-radius: 0; }
+.media-photo { aspect-ratio: 4 / 3; max-width: 520px; }
+.media-placeholder-type { font-weight: 700; font-size: var(--text-lg); color: var(--ink); }
+.media-placeholder-desc { font-size: var(--text-sm); max-width: 42ch; line-height: 1.5; }
+
+
 /* ── RESPONSIVE ── */
 @media (max-width: 860px) {
-  .build-layout { grid-template-columns: 1fr; }
+  .build-layout { grid-template-columns: minmax(0, 1fr); }
   .step-nav { position: static; height: auto; border-right: none; border-bottom: 2px solid var(--ink); }
   .build-content { padding: 2rem 1.5rem; }
   .mode-grid { grid-template-columns: 1fr; }
+  /* header uses inline 3-column grid; stack it on small screens */
+  .page-header { grid-template-columns: 1fr !important; }
+  .page-header > .page-header-desc { text-align: left !important; align-items: flex-start !important; }
 }
 </style>
 </head>
@@ -245,6 +286,7 @@
     <ul class="nav-links" role="list">
       <li><a href="index.html">Home</a></li>
       <li><a href="build.html" aria-current="page">Build</a></li>
+      <li><a href="use.html">Use It</a></li>
       <li><a href="switch-interface-web-display.html">Display</a></li>
       <li><a href="blockly_shortcut_configurator.html">Configure</a></li>
     </ul>
@@ -261,7 +303,7 @@
       <p class="page-header-label">Step-by-step guide</p>
       <h1>Build Instructions</h1>
     </div>
-    <p class="page-header-desc" style="text-align: center; margin: 0;">Everything you need to assemble, wire, and install firmware — from parts list to first boot.</p>
+    <p class="page-header-desc" style="text-align: center; margin: 0;">Everything you need to assemble, wire, and install firmware. Once it’s built, see <a href="use.html">Use It</a> for how to operate it.</p>
     <div class="page-header-desc" style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; margin: 0;">
       <a href="#video-walkthrough">Watch the video walkthrough ↓</a>
       <a href="https://docs.google.com/presentation/d/e/2PACX-1vRLB-ssaZ2lQKfzIOw7MU3ilnS_D7XAcPhWdcv4CS0tsQ7e1NFE6QulaQyW4kVeWO49AM5KeUvafYBN/pub?start=false&loop=false&delayms=3000">View Google Slide Instructions</a>
@@ -274,11 +316,9 @@
       <p class="step-nav-title">Steps</p>
       <ol class="step-nav-list" role="list">
         <li><a href="#step-build"><span class="step-num" aria-hidden="true">1</span>Build Instructions</a></li>
-        <li><a href="#step-config"><span class="step-num" aria-hidden="true">2</span>Configuration <span style="font-size: var(--text-xs); color: var(--ink3);">(optional)</span></a></li>
-        <li><a href="#step-boot"><span class="step-num" aria-hidden="true">3</span>First boot</a></li>
-        <li><a href="#step-modes"><span class="step-num" aria-hidden="true">4</span>Switch modes</a></li>
-        <li><a href="#step-mode0"><span class="step-num" aria-hidden="true">↳</span>Mode 0 — Direct</a></li>
-        <li><a href="#step-display"><span class="step-num" aria-hidden="true">5</span>Web Display <span style="font-size: var(--text-xs); color: var(--ink3);">(optional)</span></a></li>
+        <li><a href="#video-walkthrough"><span class="step-num" aria-hidden="true">2</span>Video walkthrough</a></li>
+        <li><a href="#step-check"><span class="step-num" aria-hidden="true">3</span>Check it works</a></li>
+        <li><a href="use.html"><span class="step-num" aria-hidden="true">→</span>Use It guide</a></li>
       </ol>
     </nav>
 
@@ -290,191 +330,46 @@
           <h2 class="step-title" id="heading-build">Build Instructions</h2>
         </div>
         <div class="step-body">
-          <iframe src="https://docs.google.com/presentation/d/e/2PACX-1vRLB-ssaZ2lQKfzIOw7MU3ilnS_D7XAcPhWdcv4CS0tsQ7e1NFE6QulaQyW4kVeWO49AM5KeUvafYBN/pubembed?start=false&loop=false&delayms=3000" frameborder="0" width="960" height="569" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>
+          <div class="video-frame"><iframe title="Build instructions slides" src="https://docs.google.com/presentation/d/e/2PACX-1vRLB-ssaZ2lQKfzIOw7MU3ilnS_D7XAcPhWdcv4CS0tsQ7e1NFE6QulaQyW4kVeWO49AM5KeUvafYBN/pubembed?start=false&loop=false&delayms=3000" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe></div>
         </div>
       </section>
 
-      <section class="build-step" id="step-config" aria-labelledby="heading-config">
+      <section class="build-step" id="video-walkthrough" aria-labelledby="heading-video">
         <div class="step-header">
           <span class="step-counter">Step 02</span>
-          <h2 class="step-title" id="heading-config">Configuration (optional)</h2>
+          <h2 class="step-title" id="heading-video">Video Walkthrough</h2>
         </div>
         <div class="step-body">
-          <p>Without a <code>config.py</code> the device uses built-in defaults. To customise:</p>
-          <ol class="install-steps" aria-label="Configuration steps">
-            <li>Open the <a href="blockly_shortcut_configurator.html">Shortcut Configurator</a> in your browser.</li>
-            <li>Select your OS and adjust shortcuts and timing as needed.</li>
-            <li>Click <strong>Generate config.py</strong> then <strong>Download config.py</strong>.</li>
-            <li>Copy the file to the root of <code>CIRCUITPY</code> — the device reloads automatically.</li>
-          </ol>
-        </div>
-          <div style="margin-top: 1rem; position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border: 2px solid var(--ink); border-radius: 4px;">
-            <iframe
-              src="https://www.youtube.com/watch?v=kUqRWDpYum8"
-              title="Using the configurator walkthrough"
-              style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
-              allow="accelerometer; autoplay; clipboard-write; gyroscope; picture-in-picture"
-              allowfullscreen
-              loading="lazy">
-            </iframe>
+          <p>Watch the full build from parts to first power-on.</p>
+          <div class="video-frame">
+            <div class="media-placeholder">
+              <iframe src="https://www.youtube-nocookie.com/embed/pL-6bodNu7Q?si=thnz_qXS2mCXehYT" title="Build walkthrough" …></iframe> -->
+            </div>
           </div>
-      <span class="callout success" role="note" style="margin-top: 1.25rem;">
-            <span class="callout-icon" aria-hidden="true">✓</span>
-            <span><a href="https://www.youtube.com/watch?v=kUqRWDpYum8" target="_blank">Video walkthrough available</a></span>
-          </span>
+        </div>
       </section>
 
-      <section class="build-step" id="step-boot" aria-labelledby="heading-boot">
+      <section class="build-step" id="step-check" aria-labelledby="heading-check">
         <div class="step-header">
           <span class="step-counter">Step 03</span>
-          <h2 class="step-title" id="heading-boot">First Boot</h2>
+          <h2 class="step-title" id="heading-check">Check It Works</h2>
         </div>
         <div class="step-body">
-          <p>Power via USB. The TFT shows the mode-select screen with three zones:</p>
-          <ul style="margin:0.9rem 0 0.9rem 1.4rem;font-size:var(--text-base);color:var(--ink2);line-height:2">
-            <li>Left — <strong>D0</strong> — Direct Switch Mode (Mode 0)</li>
-            <li>Centre — <strong>D1 / A2</strong> — Single-switch scanning mode</li>
-            <li>Right — <strong>D2 / A1</strong> — Two-switch direct mode</li>
-          </ul>
-          <p>Press the relevant onboard button or external switch to enter a mode. To return to the mode-select screen, press the board's <strong>RESET</strong> button. In Mode 0 you can also <strong>hold an external switch</strong> for 1.5 s to exit (useful when the onboard buttons aren't reachable).</p>
-          <div class="callout info" role="note">
-            <span class="callout-icon" aria-hidden="true">ℹ</span>
-            <span>Can't reach the onboard D0 button? <strong>Double-click</strong> either external switch (A1 or A2) at the mode-select screen to jump straight into Mode 0 — Direct Switch.</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="build-step" id="step-modes" aria-labelledby="heading-modes">
-        <div class="step-header">
-          <span class="step-counter">Step 04</span>
-          <h2 class="step-title" id="heading-modes">Switch Modes Reference</h2>
-        </div>
-        <div class="step-body">
-          <div class="mode-grid" role="list">
-            <div class="mode-card" role="listitem">
-              <h3 class="mode-card-title">Single-Switch (A2)</h3>
-              <p class="mode-card-desc">One switch controls everything — short press to select, hold to auto-scan.</p>
-              <div class="mode-card-actions" aria-label="Single-switch actions">
-                <div class="mode-action"><span class="mode-action-key">Short press</span><span class="mode-action-desc">Select &amp; send current item</span></div>
-                <div class="mode-action"><span class="mode-action-key">Hold (2s)</span><span class="mode-action-desc">Start auto-scanning</span></div>
-                <div class="mode-action"><span class="mode-action-key">Press during scan</span><span class="mode-action-desc">Select, stop scanning</span></div>
-                <div class="mode-action"><span class="mode-action-key">D0</span><span class="mode-action-desc">Return to mode select</span></div>
-              </div>
-
-              <div style="margin-top: 1rem; position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border: 2px solid var(--ink); border-radius: 4px;">
-                <iframe
-                  src="https://www.youtube-nocookie.com/embed/B0vuADNwNLM"
-                  title="Single-switch mode walkthrough"
-                  style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen
-                  loading="lazy">
-                </iframe>
-              </div>
-
+          <ol class="install-steps" aria-label="Final checks">
+            <li><span>Connect the board to a computer with a USB-C data cable. A drive called <code>CIRCUITPY</code> appears.</span></li>
+            <li><span>Make sure <code>code.py</code> is in the root of <code>CIRCUITPY</code>, along with the <code>lib</code> folder.</span></li>
+            <li><span>The screen shows the mode-select screen with three zones: <strong>D0</strong>, <strong>D1 / A2</strong> and <strong>D2 / A1</strong>.</span></li>
+            <li><span>Plug a switch into each jack and click it. The device should enter a mode and show a shortcut symbol.</span></li>
+          </ol>
+          <figure class="media-figure">
+            <div class="media-photo">
+              <img src="images/BASI_start_setup.png" alt="A white switch interface sits between a large blue switch labeled Switch 1 and a yellow switch labeled Switch 2 against a plain light background. A USB cable enters from the left. Yellow callouts identify USB Cable, D0 Button, D1 Button, D2 Button, Reset, and Mode Select. The interface screen reads D0 DIR direct, D1/A2 1-SW, and D2/A1 2-SW. The clear, instructional setup diagram has a neutral tone." style="display:block; width:100%; height:100%; object-fit:contain;">
             </div>
-            <div class="mode-card" role="listitem">
-              <h3 class="mode-card-title">Two-Switch (A1 + A2)</h3>
-              <p class="mode-card-desc">Separate navigate and select switches for faster, direct control.</p>
-              <div class="mode-card-actions" aria-label="Two-switch actions">
-                <div class="mode-action"><span class="mode-action-key">A1 press</span><span class="mode-action-desc">Advance to next item</span></div>
-                <div class="mode-action"><span class="mode-action-key">A2 press</span><span class="mode-action-desc">Select &amp; send current item</span></div>
-                <div class="mode-action"><span class="mode-action-key">D0</span><span class="mode-action-desc">Return to mode select</span></div>
-              </div>
-              <div style="padding-bottom: 56.25%; position: relative;"><iframe width="100%" height="100%" src="https://www.youtube.com/embed/QwC549p94Gs" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" title="Media Embed" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; border: 0px;"><small>Powered by <a href="https://embed.tube/embed-code-generator/youtube/">youtube embed code generator</a></small></iframe></div>
-            </div>
-          </div>
-          <div class="callout info" role="note">
-            <span class="callout-icon" aria-hidden="true">ℹ</span>
-            <span>Single-switch and two-switch modes can also be selected at startup with the external switches: A2 (select) for single-switch mode, A1 (nav) for two-switch mode. To leave any mode, press the board's RESET button (Mode 0 can also be exited by holding a switch).</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="build-step" id="step-mode0" aria-labelledby="heading-mode0">
-        <div class="step-header">
-          <span class="step-counter">Mode 0</span>
-          <h2 class="step-title" id="heading-mode0">Direct Switch Mode</h2>
-        </div>
-        <div class="step-body">
-          <p>Mode 0 maps each external switch directly to a single, immediate action — no scanning or navigation required. It is designed for users who need a simple, low-effort input method or who want to control mouse and media functions with their switches.</p>
-
-          <div class="mode-grid" role="list" style="grid-template-columns:1fr">
-            <div class="mode-card" role="listitem">
-              <h3 class="mode-card-title">Direct Switch (Mode 0)</h3>
-              <p class="mode-card-desc">Each switch fires one action immediately on press. Default: Switch 1 = Enter, Switch 2 = Tab. Fully configurable in the Shortcut Configurator.</p>
-              <div class="mode-card-actions" aria-label="Mode 0 actions">
-                <div class="mode-action"><span class="mode-action-key">A1 tap</span><span class="mode-action-desc">Switch 1 action (default: Enter)</span></div>
-                <div class="mode-action"><span class="mode-action-key">A2 tap</span><span class="mode-action-desc">Switch 2 action (default: Tab)</span></div>
-                <div class="mode-action"><span class="mode-action-key">A1/A2 hold (1.5 s)</span><span class="mode-action-desc">Return to mode select</span></div>
-                <div class="mode-action"><span class="mode-action-key">RESET button</span><span class="mode-action-desc">Return to mode select</span></div>
-              </div>
-            </div>
-          </div>
-
-          <h3 style="font-family:var(--ff-mono);font-size:var(--text-base);margin:1.25rem 0 0.6rem;color:var(--ink)">How to enter Mode 0</h3>
-          <table class="pin-table" aria-label="Ways to enter Mode 0">
-            <thead><tr><th scope="col">Method</th><th scope="col">How</th><th scope="col">Best for</th></tr></thead>
-            <tbody>
-              <tr><td><span class="pin-tag gpio">D0</span></td><td>Press onboard D0 button at mode-select screen</td><td>Initial setup, tester access</td></tr>
-              <tr><td>Double-click</td><td>Double-click either external switch (A1 or A2) at the mode-select screen within 0.4 s</td><td>Users who cannot reach onboard buttons</td></tr>
-              <tr><td><code>config.py</code></td><td>Run <code>run_direct_switch_mode()</code> as the first call in the main loop</td><td>Dedicated single-purpose device</td></tr>
-            </tbody>
-          </table>
-          <div class="callout info" role="note" style="margin-top:0.9rem">
-            <span class="callout-icon" aria-hidden="true">ℹ</span>
-            <span>Because a single external-switch click waits briefly (the double-click window, default 0.4 s) to watch for a second click, entering single- or two-switch mode <em>via an external switch</em> has a short deliberate delay. The onboard D1 / D2 buttons enter those modes instantly.</span>
-          </div>
-
-          <h3 style="font-family:var(--ff-mono);font-size:var(--text-base);margin:1.25rem 0 0.6rem;color:var(--ink)">How to exit Mode 0</h3>
-          <table class="pin-table" aria-label="Ways to exit Mode 0">
-            <thead><tr><th scope="col">Method</th><th scope="col">How</th><th scope="col">Best for</th></tr></thead>
-            <tbody>
-              <tr><td>Hold a switch</td><td>Hold A1 or A2 for 1.5 s — a short tap still fires the action, only a long hold exits</td><td>Users who entered by double-click</td></tr>
-              <tr><td>RESET</td><td>Press the board's onboard RESET button</td><td>When the board is reachable</td></tr>
-            </tbody>
-          </table>
-
-          <h3 style="font-family:var(--ff-mono);font-size:var(--text-base);margin:1.25rem 0 0.6rem;color:var(--ink)">Supported action types</h3>
-          <table class="pin-table" aria-label="Mode 0 action types">
-            <thead><tr><th scope="col">Type</th><th scope="col">What it does</th><th scope="col">Example</th></tr></thead>
-            <tbody>
-              <tr><td>Keyboard key</td><td>Press (and release) any key or key combo</td><td>Enter, Tab, Ctrl+C, Cmd+Space</td></tr>
-              <tr><td>Mouse click</td><td>Left, right, or middle button click</td><td>Left click for activation</td></tr>
-              <tr><td>Mouse scroll</td><td>Scroll up or down by N ticks per press</td><td>Scroll down a page</td></tr>
-              <tr><td>Mouse move</td><td>Move pointer by X/Y pixels per press</td><td>Nudge cursor right</td></tr>
-              <tr><td>Media control</td><td>Play/pause, volume, track skip, mute, brightness</td><td>Play/pause music</td></tr>
-            </tbody>
-          </table>
-
-          <div class="callout info" role="note" style="margin-top:1.1rem">
-            <span class="callout-icon" aria-hidden="true">ℹ</span>
-            <span>Customise both switch actions in the <a href="blockly_shortcut_configurator.html">Shortcut Configurator</a> under <strong>Mode 0 — Direct Switch Actions</strong>, then download and drop the generated <code>config.py</code> onto your device.</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="build-step" id="step-display" aria-labelledby="heading-display">
-        <div class="step-header">
-          <span class="step-counter">Step 05</span>
-          <h2 class="step-title" id="heading-display">Display <span style="font-size: var(--text-base); font-weight: 400; color: var(--ink3);">(optional)</span></h2>
-        </div>
-        <div class="step-body">
-          <p>The Feather ESP32-S3 TFT has a small built-in display that shows the active shortcut, next shortcut and connection status. Users with low vision may benefit from the <a href="/switch-interface-web-display.html"> Display Tool</a> as an alternative to the small onboard screen. The web app tool provides a larger, high contrast, more readable interface for displaying information and text to speech support if enabled.</p>
-          <p>Watch the walkthrough below for a live demo of the display in action.</p>
-          <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border: 2px solid var(--ink); border-radius: 4px; margin: 1.25rem 0;">
-            <iframe
-              src="https://www.youtube-nocookie.com/embed/4wwDCTYM0XI"
-              title="Display walkthrough"
-              style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen
-              loading="lazy">
-            </iframe>
-          </div>
+            <figcaption>The mode-select screen on first boot.</figcaption>
+          </figure>
           <div class="callout success" role="note">
             <span class="callout-icon" aria-hidden="true">✓</span>
-            <span>Note: This tool is only support by Chrome or Edge browsers that support WebUSB. TTS is only supported on computers. This tool has not yet been tested on mobile devices.</span>
+            <span>Your switch interface is built. Head to the <a href="use.html">Use It guide</a> to choose a mode, learn the controls and customise shortcuts.</span>
           </div>
         </div>
       </section>
@@ -489,6 +384,7 @@
     <ul class="footer-links" role="list">
       <li><a href="index.html">Home</a></li>
       <li><a href="build.html">Build</a></li>
+      <li><a href="use.html">Use It</a></li>
       <li><a href="switch-interface-web-display.html">Display</a></li>
       <li><a href="blockly_shortcut_configurator.html">Configure</a></li>
       <li><a href="https://github.com/loretod/blockly_accessible_switch_interface" target="_blank" rel="noopener" aria-label="GitHub repository (opens in new tab)">GitHub ↗</a></li>

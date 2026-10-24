@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Use It — Blockly Accessible Switch Interface</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖲️</text></svg>">
+<meta name="description" content="How to use the Blockly Accessible Switch Interface: choosing a mode, reading the screen colours and messages, single-switch scanning, two-switch navigation, direct switch mode, submenus and the web display.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="basi-shared.css">
+<style>
+/* ── LAYOUT ── */
+.build-layout {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  min-height: calc(100vh - var(--nav-h) - 200px);
+}
+
+/* ── STICKY STEP NAV ── */
+.step-nav {
+  border-right: 2px solid var(--ink);
+  padding: 2rem 1.5rem;
+  position: sticky;
+  top: var(--nav-h);
+  height: calc(100vh - var(--nav-h));
+  overflow-y: auto;
+  background: var(--tag-bg);
+}
+.step-nav-title {
+  font-family: var(--ff-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 1rem;
+}
+.step-nav-list { list-style: none; }
+.step-nav-list a {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--ff-mono);
+  font-size: var(--text-sm);
+  color: var(--ink2);
+  text-decoration: none;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--rule);
+  transition: color var(--trans);
+  line-height: 1.4;
+}
+.step-nav-list a:hover  { color: var(--accent); }
+.step-num {
+  font-size: var(--text-xs);
+  color: var(--ink3);
+  min-width: 20px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── BUILD CONTENT ── */
+.build-content {
+  padding: 2.5rem 3.5rem 4rem;
+  max-width: 820px;
+}
+
+.build-step {
+  margin-bottom: 3.5rem;
+  padding-bottom: 3.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+.build-step:last-child { border-bottom: none; }
+
+.step-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.step-counter {
+  font-family: var(--ff-mono);
+  font-size: var(--text-sm);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.step-title {
+  font-family: var(--ff-head);
+  font-weight: 700;
+  font-size: var(--text-2xl);
+  letter-spacing: -0.02em;
+}
+.step-body {
+  font-size: var(--text-base);
+  color: var(--ink2);
+  line-height: 1.8;
+}
+.step-body p { margin-bottom: 0.9rem; }
+.step-body p:last-child { margin-bottom: 0; }
+
+/* ── TABLES ── */
+.parts-table, .pin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: var(--text-sm);
+}
+.parts-table th, .pin-table th {
+  font-family: var(--ff-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  text-align: left;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 2px solid var(--ink);
+  background: var(--tag-bg);
+}
+.parts-table td {
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+  line-height: 1.5;
+}
+.parts-table tr:hover td { background: var(--tag-bg); }
+.parts-table td:first-child { font-weight: 600; color: var(--ink); }
+.parts-table td:last-child  { color: var(--ink3); font-family: var(--ff-mono); font-size: var(--text-xs); }
+.pin-table td {
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--ff-mono);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+.pin-table tr:hover td { background: var(--tag-bg); }
+.pin-tag {
+  display: inline-block;
+  font-size: var(--text-xs);
+  padding: 2px 7px;
+  border-radius: 2px;
+  font-family: var(--ff-mono);
+  font-weight: 500;
+}
+.pin-tag.gpio { background: #e8edf8; color: var(--accent2); }
+.pin-tag.gnd  { background: var(--tag-bg); color: var(--ink2); border: 1px solid var(--rule); }
+
+/* ── CODE BLOCK ── */
+.code-block {
+  background: var(--ink);
+  color: #a8d8a0;
+  font-family: var(--ff-mono);
+  font-size: var(--text-sm);
+  padding: 1.2rem 1.4rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  line-height: 1.75;
+  margin: 1.25rem 0;
+  white-space: pre;
+  tab-size: 4;
+}
+.code-comment { color: #6a6f7a; }
+.code-kw      { color: #88ccff; }
+
+/* ── ORDERED STEPS ── */
+.install-steps {
+  counter-reset: install;
+  list-style: none;
+  padding: 0;
+  margin: 1.1rem 0;
+}
+.install-steps li {
+  counter-increment: install;
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--text-base);
+  color: var(--ink2);
+  line-height: 1.7;
+}
+.install-steps li:last-child { border-bottom: none; }
+.install-steps li::before {
+  content: counter(install);
+  font-family: var(--ff-mono);
+  font-size: var(--text-sm);
+  color: var(--accent);
+  flex-shrink: 0;
+  width: 22px;
+  text-align: right;
+  padding-top: 0.15rem;
+  font-weight: 500;
+}
+.install-steps li strong { color: var(--ink); }
+.install-steps li a { color: var(--accent2); }
+.install-steps li a:hover { color: var(--accent); }
+
+/* ── MODE CARDS ── */
+.mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin: 1.25rem 0; }
+.mode-card {
+  border: 1.5px solid var(--rule);
+  border-radius: 4px;
+  padding: 1.25rem 1.3rem;
+  background: var(--surface);
+}
+.mode-card-title {
+  font-family: var(--ff-head);
+  font-weight: 700;
+  font-size: var(--text-lg);
+  margin-bottom: 0.5rem;
+}
+.mode-card-desc {
+  font-size: var(--text-base);
+  color: var(--ink2);
+  line-height: 1.65;
+  margin-bottom: 0.9rem;
+}
+.mode-card-actions { display: flex; flex-direction: column; gap: 0.35rem; }
+.mode-action {
+  font-family: var(--ff-mono);
+  font-size: var(--text-sm);
+  display: flex;
+  gap: 0.5rem;
+  line-height: 1.4;
+}
+.mode-action-key  { color: var(--accent); min-width: 120px; flex-shrink: 0; font-weight: 500; }
+.mode-action-desc { color: var(--ink3); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 860px) {
+  .build-layout { grid-template-columns: minmax(0, 1fr); }
+  .step-nav { position: static; height: auto; border-right: none; border-bottom: 2px solid var(--ink); }
+  .build-content { padding: 2rem 1.5rem; }
+  .mode-grid { grid-template-columns: 1fr; }
+}
+
+/* ── USE PAGE ADDITIONS ── */
+.nav-opt, .title-opt { font-size: var(--text-xs); color: var(--ink3); font-weight: 400; }
+.title-opt { font-size: var(--text-base); }
+.sub-heading { font-family: var(--ff-head); font-size: var(--text-lg); font-weight: 700; margin: 1.5rem 0 0.6rem; color: var(--ink); letter-spacing: 0; }
+.mode-card { margin: 1.1rem 0; }
+
+.build-step { scroll-margin-top: calc(var(--nav-h) + 1rem); }
+/* Responsive 16:9 video wrapper */
+.video-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 1.25rem 0;
+  background: var(--tag-bg);
+}
+.video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+/* Media placeholders — swap for real embeds */
+.media-figure { margin: 1.25rem 0; }
+.media-figure figcaption { font-size: var(--text-sm); color: var(--ink3); margin-top: 0.5rem; }
+.media-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  text-align: center;
+  padding: 1.5rem;
+  width: 100%;
+  height: 100%;
+  border: 3px dashed var(--ink3);
+  border-radius: var(--radius);
+  background: repeating-linear-gradient(45deg, var(--tag-bg) 0 14px, var(--surface) 14px 28px);
+  color: var(--ink2);
+}
+.video-frame .media-placeholder { position: absolute; inset: 0; border: none; border-radius: 0; }
+.media-placeholder-type { font-weight: 700; font-size: var(--text-lg); color: var(--ink); }
+.media-placeholder-desc { font-size: var(--text-sm); max-width: 42ch; line-height: 1.5; }
+
+/* Images — files live in images/. width/height attributes reserve the
+   space while loading (no layout jump); CSS keeps them responsive. */
+.media-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--tag-bg);
+}
+.media-figure.device { max-width: 520px; }   /* single device-screen photo */
+.media-grid { display: grid; gap: 1rem; margin: 1.25rem 0; }
+.media-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.media-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.media-grid .media-figure { margin: 0; }
+@media (max-width: 560px) {
+  .media-grid-2, .media-grid-3 { grid-template-columns: minmax(0, 1fr); }
+}
+.colour-chip {
+  display: inline-block;
+  width: 1em; height: 1em;
+  border-radius: 3px;
+  vertical-align: -0.15em;
+  margin-right: 0.4em;
+  border: 1px solid var(--ink3);
+}
+
+/* Troubleshooting list */
+.faq { margin: 0; }
+.faq-item { padding: 1rem 0; border-bottom: 1px solid var(--rule); }
+.faq-item:first-child { padding-top: 0; }
+.faq dt { font-weight: 700; color: var(--ink); margin-bottom: 0.3rem; }
+.faq dd { margin: 0; }
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<header role="banner">
+  <nav class="site-nav" aria-label="Site navigation">
+    <a href="index.html" class="nav-logo" aria-label="Blockly Accessible Switch Interface – home">BASI<span>.</span></a>
+    <ul class="nav-links" role="list">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="build.html">Build</a></li>
+      <li><a href="use.html" aria-current="page">Use It</a></li>
+      <li><a href="switch-interface-web-display.html">Display</a></li>
+      <li><a href="blockly_shortcut_configurator.html">Configure</a></li>
+    </ul>
+    <a href="https://github.com/loretod/blockly_accessible_switch_interface"
+       class="nav-gh" target="_blank" rel="noopener"
+       aria-label="View source on GitHub (opens in new tab)">↗ GitHub</a>
+  </nav>
+</header>
+
+<main id="main-content">
+
+  <div class="page-header">
+    <div>
+      <p class="page-header-label">User guide</p>
+      <h1>Use It</h1>
+    </div>
+    <p class="page-header-desc">How to switch on the device, pick a mode, and control Blockly with one or two switches. Still need to build the device? Start with the <a href="build.html">build instructions</a>.</p>
+  </div>
+
+  <div class="build-layout">
+
+    <nav class="step-nav" aria-label="User guide sections">
+      <p class="step-nav-title">Guide</p>
+      <ol class="step-nav-list" role="list">
+        <li><a href="#use-start"><span class="step-num" aria-hidden="true">1</span>Getting started</a></li>
+        <li><a href="#use-screen"><span class="step-num" aria-hidden="true">2</span>Reading the screen</a></li>
+        <li><a href="#use-modes"><span class="step-num" aria-hidden="true">3</span>Choosing a mode</a></li>
+        <li><a href="#use-mode1"><span class="step-num" aria-hidden="true">↳</span>Single-switch</a></li>
+        <li><a href="#use-mode2"><span class="step-num" aria-hidden="true">↳</span>Two-switch</a></li>
+        <li><a href="#use-mode0"><span class="step-num" aria-hidden="true">↳</span>Direct switch</a></li>
+        <li><a href="#use-submenus"><span class="step-num" aria-hidden="true">4</span>Submenus</a></li>
+        <li><a href="#use-config"><span class="step-num" aria-hidden="true">5</span><span>Customising <span class="nav-opt">(optional)</span></span></a></li>
+        <li><a href="#use-display"><span class="step-num" aria-hidden="true">6</span><span>Web Display <span class="nav-opt">(optional)</span></span></a></li>
+        <li><a href="#use-help"><span class="step-num" aria-hidden="true">7</span>Troubleshooting</a></li>
+      </ol>
+    </nav>
+
+    <div class="build-content">
+
+      <!-- 1. GETTING STARTED -->
+      <section class="build-step" id="use-start" aria-labelledby="heading-start">
+        <div class="step-header">
+          <span class="step-counter">Step 01</span>
+          <h2 class="step-title" id="heading-start">Getting Started</h2>
+        </div>
+        <div class="step-body">
+          <p>The switch interface plugs into a computer by USB and behaves like a keyboard. Each switch press sends a Blockly keyboard shortcut, so no extra software is needed on the computer.</p>
+          <ol class="install-steps" aria-label="Getting started steps">
+            <li><span>Plug one or two assistive switches into the 3.5&nbsp;mm jacks. <strong>A2</strong> is the select switch; <strong>A1</strong> is the navigate switch.</span></li>
+            <li><span>Connect the device to the computer with a USB-C data cable. The screen lights up with the mode-select screen.</span></li>
+            <li><span>Open your Blockly environment and click once into the workspace so it has keyboard focus.</span></li>
+            <li><span>Choose a mode (see <a href="#use-modes">Choosing a mode</a>) and start pressing.</span></li>
+          </ol>
+
+          <div class="callout info" role="note">
+            <span class="callout-icon" aria-hidden="true">ℹ</span>
+            <span>If the device was set up for macOS shortcuts and you are on Windows (or the other way round), some shortcuts won’t work. See <a href="#use-help">Troubleshooting</a>.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. READING THE SCREEN -->
+      <section class="build-step" id="use-screen" aria-labelledby="heading-screen">
+        <div class="step-header">
+          <span class="step-counter">Step 02</span>
+          <h2 class="step-title" id="heading-screen">Reading the Screen</h2>
+        </div>
+        <div class="step-body">
+          <p>Each mode has its own screen colour, so you can tell at a glance which mode you are in. A short text label shows the mode too, for anyone who finds the colours hard to tell apart.</p>
+          <table class="pin-table" aria-label="Screen colour for each mode">
+            <thead><tr><th scope="col">Mode</th><th scope="col">Screen colour</th><th scope="col">Label</th></tr></thead>
+            <tbody>
+              <tr><td>Direct switch (Mode 0)</td><td><span class="colour-chip" style="background:#007060" aria-hidden="true"></span>Teal</td><td>SW1 / SW2</td></tr>
+              <tr><td>Single-switch (Mode 1)</td><td><span class="colour-chip" style="background:#800080" aria-hidden="true"></span>Purple, turning <span class="colour-chip" style="background:#B0006A" aria-hidden="true"></span>magenta while scanning</td><td>1-SW</td></tr>
+              <tr><td>Two-switch (Mode 2)</td><td><span class="colour-chip" style="background:#1F4FBF" aria-hidden="true"></span>Blue</td><td>2-SW</td></tr>
+            </tbody>
+          </table>
+
+          <p>In single-switch and two-switch modes the screen is split into two panels.</p>
+          <table class="pin-table" aria-label="What the screen shows">
+            <thead><tr><th scope="col">What you see</th><th scope="col">What it means</th></tr></thead>
+            <tbody>
+              <tr><td>Large symbol, right panel (mode colour)</td><td>The shortcut that will be sent if you select now</td></tr>
+              <tr><td>Small symbol, left panel (grey)</td><td>The shortcut that comes next</td></tr>
+              <tr><td>“1-SW” or “2-SW” at the top of the grey panel</td><td>Which mode you are in</td></tr>
+              <tr><td>Thick orange border</td><td>This item opens a <a href="#use-submenus">submenu</a></td></tr>
+              <tr><td>Orange “SUB” label at the bottom of the grey panel</td><td>You are inside a submenu</td></tr>
+              <tr><td>Dark bar along the bottom (single-switch only)</td><td>A reminder of what the switch does right now, such as “Hold switch to scan”</td></tr>
+            </tbody>
+          </table>
+
+          <!-- IMAGE: images/BASI_active_screen.png — labelled diagram, 1400×788 (16:9), PNG -->
+          <figure class="media-figure">
+            <img class="media-img" src="images/BASI_active_screen.png" alt="The device screen in single-switch mode, labelled: the large current shortcut on the purple right panel, the next shortcut and 1-SW label on the grey left panel, and the hint bar along the bottom." width="1400" height="788">
+            <figcaption>The device screen in single-switch mode.</figcaption>
+          </figure>
+
+          <h3 class="sub-heading">Messages after a selection</h3>
+          <p>After each selection the screen can flash a short message. Both messages can be turned on or off in the <a href="blockly_shortcut_configurator.html">Shortcut Configurator</a> (Step&nbsp;2, <strong>On-screen Messages</strong>).</p>
+          <table class="pin-table" aria-label="Messages after a selection">
+            <thead><tr><th scope="col">Message</th><th scope="col">What it means</th></tr></thead>
+            <tbody>
+              <tr><td>Green “SENT!”</td><td>The shortcut was sent to the computer. Turning this off makes the device faster, because the screen moves straight on.</td></tr>
+              <tr><td>Red “ERROR / Not sent”</td><td>The shortcut did not reach the computer, for example because the USB cable is loose. Shows for 1&nbsp;second. Recommended to keep on.</td></tr>
+              <tr><td>Green “OPEN”</td><td>A submenu folder opened (it has no shortcut of its own to send).</td></tr>
+            </tbody>
+          </table>
+
+          <!-- IMAGES: images/BASI_msg_sent.jpg and images/BASI_msg_error.jpg — 1040×585 (16:9), JPG -->
+          <div class="media-grid media-grid-2">
+            <figure class="media-figure">
+              <img class="media-img" src="images/BASI_msg_sent.jpg" alt="The device screen filled green with the word SENT!" width="1040" height="585" loading="lazy" decoding="async">
+              <figcaption>“SENT!” after a successful selection.</figcaption>
+            </figure>
+            <figure class="media-figure">
+              <img class="media-img" src="images/BASI_msg_open.jpg" alt="The device screen filled green with the words Open." width="1040" height="585" loading="lazy" decoding="async">
+              <figcaption>"OPEN" when a submenu folder is opened.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. CHOOSING A MODE -->
+      <section class="build-step" id="use-modes" aria-labelledby="heading-modes">
+        <div class="step-header">
+          <span class="step-counter">Step 03</span>
+          <h2 class="step-title" id="heading-modes">Choosing a Mode</h2>
+        </div>
+        <div class="step-body">
+          <p>When the device starts it shows the mode-select screen. Its three columns use the same colours as the modes themselves: teal for direct switch, purple for single-switch and blue for two-switch. Choose a mode with an onboard button or an external switch.</p>
+          <table class="pin-table" aria-label="How to enter each mode">
+            <thead><tr><th scope="col">Mode</th><th scope="col">Onboard button</th><th scope="col">External switch</th></tr></thead>
+            <tbody>
+              <tr><td>Mode 1 — Single-switch scanning</td><td><span class="pin-tag gpio">D1</span></td><td>Click A2 (select)</td></tr>
+              <tr><td>Mode 2 — Two-switch navigation</td><td><span class="pin-tag gpio">D2</span></td><td>Click A1 (navigate)</td></tr>
+              <tr><td>Mode 0 — Direct switch</td><td><span class="pin-tag gpio">D0</span></td><td>Double-click A1 or A2</td></tr>
+            </tbody>
+          </table>
+          <p>To get back to the mode-select screen from any mode, press <strong>D0</strong> or the board’s <strong>RESET</strong> button. In Mode 0 you can also hold a switch for 1.5&nbsp;seconds.</p>
+          <div class="callout info" role="note">
+            <span class="callout-icon" aria-hidden="true">ℹ</span>
+            <span>A single click on an external switch waits a moment (0.4&nbsp;s) to check whether a second click is coming. That short pause is expected. The onboard D1 and D2 buttons switch mode instantly.</span>
+          </div>
+
+          <!-- IMAGE: images/BASI_mode_select.jpg — 1040×585 (16:9), JPG -->
+          <figure class="media-figure device">
+            <img class="media-img" src="images/BASI_mode_select.jpg" alt="The mode-select screen with three coloured columns: teal labelled D0, DIR, direct; purple labelled D1/A2, 1-SW, select; blue labelled D2/A1, 2-SW, nav." width="1040" height="585" loading="lazy" decoding="async">
+            <figcaption>The mode-select screen. Each column is in its mode’s colour.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- MODE 1 -->
+      <section class="build-step" id="use-mode1" aria-labelledby="heading-mode1">
+        <div class="step-header">
+          <span class="step-counter">Mode 1</span>
+          <h2 class="step-title" id="heading-mode1">Single-Switch Scanning</h2>
+        </div>
+        <div class="step-body">
+          <p>One switch (A2) does everything. The device steps through the shortcut list for you, and you press when the one you want appears. A bar along the bottom of the screen always says what the switch will do next.</p>
+          <div class="mode-card">
+            <div class="mode-card-actions" aria-label="Single-switch actions">
+              <div class="mode-action"><span class="mode-action-key">Short press</span><span class="mode-action-desc">Send the current shortcut</span></div>
+              <div class="mode-action"><span class="mode-action-key">Hold (2 s)</span><span class="mode-action-desc">Start auto-scanning, then let go</span></div>
+              <div class="mode-action"><span class="mode-action-key">Press during scan</span><span class="mode-action-desc">Send the current shortcut and stop scanning</span></div>
+              <div class="mode-action"><span class="mode-action-key">D0</span><span class="mode-action-desc">Return to mode select</span></div>
+            </div>
+          </div>
+          <h3 class="sub-heading">What the hint bar shows</h3>
+          <ol class="install-steps" aria-label="Single-switch hint bar steps">
+            <li><span><strong>“Hold switch to scan”</strong> — the device is waiting. The screen is purple. A short press sends the shortcut shown.</span></li>
+            <li><span><strong>“Keep holding...”</strong> — once you hold past a short press, the bar fills up. Keep holding until it is full.</span></li>
+            <li><span><strong>“Press to select”</strong> — scanning has started and the screen turns magenta. Let go of the switch, then press again when the shortcut you want appears.</span></li>
+          </ol>
+
+          <!-- IMAGES: images/BASI_mode1_waiting.jpg, images/BASI_mode1_holding.jpg, images/BASI_mode1_scanning.jpg — 1040×585 (16:9), JPG -->
+          <div class="media-grid media-grid-3">
+            <figure class="media-figure">
+              <img class="media-img" src="images/BASI_mode1_waiting.jpg" alt="Single-switch screen in purple with the hint Hold switch to scan." width="1040" height="585" loading="lazy" decoding="async">
+              <figcaption>Waiting</figcaption>
+            </figure>
+            <figure class="media-figure">
+              <img class="media-img" src="images/BASI_mode1_holding.jpg" alt="Single-switch screen with the hint Keep holding and the bottom bar part filled in magenta." width="1040" height="585" loading="lazy" decoding="async">
+              <figcaption>Holding — the bar fills</figcaption>
+            </figure>
+            <figure class="media-figure">
+              <img class="media-img" src="images/BASI_mode1_scanning.jpg" alt="Single-switch screen in magenta with the hint Press to select." width="1040" height="585" loading="lazy" decoding="async">
+              <figcaption>Scanning</figcaption>
+            </figure>
+          </div>
+
+          <div class="video-frame">
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/B0vuADNwNLM"
+              title="Single-switch mode walkthrough"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="callout success" role="note">
+            <span class="callout-icon" aria-hidden="true">✓</span>
+            <span>Scanning speed and hold time can be changed in the <a href="blockly_shortcut_configurator.html">Shortcut Configurator</a>.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- MODE 2 -->
+      <section class="build-step" id="use-mode2" aria-labelledby="heading-mode2">
+        <div class="step-header">
+          <span class="step-counter">Mode 2</span>
+          <h2 class="step-title" id="heading-mode2">Two-Switch Navigation</h2>
+        </div>
+        <div class="step-body">
+          <p>One switch moves through the list and the other sends. You set the pace, so this is usually faster than scanning. The screen is blue, with “2-SW” at the top of the grey panel.</p>
+          <div class="mode-card">
+            <div class="mode-card-actions" aria-label="Two-switch actions">
+              <div class="mode-action"><span class="mode-action-key">A1 press</span><span class="mode-action-desc">Move to the next shortcut</span></div>
+              <div class="mode-action"><span class="mode-action-key">A2 press</span><span class="mode-action-desc">Send the current shortcut</span></div>
+              <div class="mode-action"><span class="mode-action-key">D0</span><span class="mode-action-desc">Return to mode select</span></div>
+            </div>
+          </div>
+
+          <!-- IMAGE: images/BASI_mode2_screen.jpg — 1040×585 (16:9), JPG -->
+          <figure class="media-figure device">
+            <img class="media-img" src="images/BASI_mode2_screen.jpg" alt="Two-switch screen: the current shortcut on a blue right panel, the next shortcut and 2-SW label on the grey left panel." width="1040" height="585" loading="lazy" decoding="async">
+            <figcaption>Two-switch mode.</figcaption>
+          </figure>
+          <div class="video-frame">
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/QwC549p94Gs"
+              title="Two-switch mode walkthrough"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen loading="lazy"></iframe>
+          </div>
+        </div>
+      </section>
+
+      <!-- MODE 0 -->
+      <section class="build-step" id="use-mode0" aria-labelledby="heading-mode0">
+        <div class="step-header">
+          <span class="step-counter">Mode 0</span>
+          <h2 class="step-title" id="heading-mode0">Direct Switch</h2>
+        </div>
+        <div class="step-body">
+          <p>Each switch sends one action straight away, with no list to move through. This suits users who need a simple, low-effort input, or who want switches for mouse clicks, scrolling or media keys.</p>
+          <div class="mode-card">
+            <div class="mode-card-actions" aria-label="Direct switch actions">
+              <div class="mode-action"><span class="mode-action-key">A1 tap</span><span class="mode-action-desc">Switch 1 action (default: Enter)</span></div>
+              <div class="mode-action"><span class="mode-action-key">A2 tap</span><span class="mode-action-desc">Switch 2 action (default: Tab)</span></div>
+              <div class="mode-action"><span class="mode-action-key">Hold A1 or A2 (1.5 s)</span><span class="mode-action-desc">Return to mode select</span></div>
+              <div class="mode-action"><span class="mode-action-key">D0 or RESET</span><span class="mode-action-desc">Return to mode select</span></div>
+            </div>
+          </div>
+          <p>The screen shows <strong>SW1</strong> on the left and <strong>SW2</strong> on the right in two shades of teal, each with the symbol for its action. If “SENT!” messages are on, the side you press flashes green when the action is sent. If an action fails, a red “ERROR” screen appears (when error messages are on).</p>
+
+          <!-- IMAGE: images/BASI_mode0_screen.jpg — 1040×585 (16:9), JPG -->
+          <figure class="media-figure device">
+            <img class="media-img" src="images/BASI_mode0_screen.jpg" alt="Direct switch screen: SW1 on a teal left half and SW2 on a darker teal right half, each with its action symbol." width="1040" height="585" loading="lazy" decoding="async">
+            <figcaption>Direct switch mode with the default Enter and Tab actions.</figcaption>
+          </figure>
+
+          <h3 class="sub-heading">Actions a switch can send</h3>
+          <table class="pin-table" aria-label="Mode 0 action types">
+            <thead><tr><th scope="col">Type</th><th scope="col">What it does</th><th scope="col">Example</th></tr></thead>
+            <tbody>
+              <tr><td>Keyboard key</td><td>Press any key or key combination</td><td>Enter, Tab, Ctrl+C, Cmd+Space</td></tr>
+              <tr><td>Mouse click</td><td>Left, right or middle click</td><td>Left click to activate</td></tr>
+              <tr><td>Mouse scroll</td><td>Scroll up or down per press</td><td>Scroll down a page</td></tr>
+              <tr><td>Mouse move</td><td>Move the pointer per press</td><td>Nudge the cursor right</td></tr>
+              <tr><td>Media control</td><td>Play/pause, volume, track skip, mute, brightness</td><td>Play/pause music</td></tr>
+            </tbody>
+          </table>
+
+          <!-- VIDEO PLACEHOLDER: replace the .media-placeholder div with
+               <iframe src="https://www.youtube-nocookie.com/embed/VIDEO_ID" title="Direct switch mode walkthrough" …></iframe>
+               inside the .video-frame wrapper
+          <div class="video-frame">
+            <div class="media-placeholder">
+              <span class="media-placeholder-type">Video placeholder</span>
+              <span class="media-placeholder-desc">Direct switch mode walkthrough: entering by double-click, sending actions, and holding to exit.</span>
+            </div>
+          </div>
+          -->
+
+          <div class="callout info" role="note">
+            <span class="callout-icon" aria-hidden="true">ℹ</span>
+            <span>Set both switch actions in the <a href="blockly_shortcut_configurator.html">Shortcut Configurator</a> under <strong>Mode 0 — Direct Switch Actions</strong>.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. SUBMENUS -->
+      <section class="build-step" id="use-submenus" aria-labelledby="heading-submenus">
+        <div class="step-header">
+          <span class="step-counter">Step 04</span>
+          <h2 class="step-title" id="heading-submenus">Using Submenus</h2>
+        </div>
+        <div class="step-body">
+          <p>Long lists are slow to scan, so related shortcuts can be grouped into submenus. Submenus work in single-switch and two-switch modes.</p>
+          <ol class="install-steps" aria-label="Submenu steps">
+            <li><span>An item with a <strong>thick orange border</strong> opens a submenu. Select it like any other item.</span></li>
+            <li><span>If the item has its own shortcut, that shortcut is sent first. For example, a <kbd>Cmd</kbd>+<kbd>B</kbd> item opens Blockly’s menu on the computer, and the submenu then lists the choices for that menu. A submenu without a shortcut is just a folder and shows “OPEN”.</span></li>
+            <li><span>The list changes to just the items in that submenu, and an orange <strong>SUB</strong> label appears at the bottom of the grey panel.</span></li>
+            <li><span>Some submenus return to the main list automatically after you pick one item.</span></li>
+            <li><span>Others let you pick several items in a row. Choose the <strong>back</strong> item (shown as <kbd>&lt;</kbd>) at the end of the list when you are done.</span></li>
+          </ol>
+
+          <!-- IMAGES: images/BASI_submenu_entry.jpg and images/BASI_submenu_inside.jpg — 1040×585 (16:9), JPG -->
+          <div class="media-grid media-grid-2">
+            <figure class="media-figure">
+              <img class="media-img" src="images/BASI_submenu_entry.jpg" alt="A shortcut on the device screen with a thick orange border, showing it opens a submenu." width="1040" height="585" loading="lazy" decoding="async">
+              <figcaption>An item that opens a submenu.</figcaption>
+            </figure>
+            <figure class="media-figure">
+              <img class="media-img" src="images/BASI_submenu_inside.jpg" alt="Inside a submenu: the orange SUB label at the bottom of the grey panel." width="1040" height="585" loading="lazy" decoding="async">
+              <figcaption>Inside a submenu.</figcaption>
+            </figure>
+          </div>
+
+          <!-- VIDEO PLACEHOLDER: replace the .media-placeholder div with a YouTube iframe
+          <div class="video-frame">
+            <div class="media-placeholder">
+              <span class="media-placeholder-type">Video placeholder</span>
+              <span class="media-placeholder-desc">Submenu walkthrough: opening a submenu, picking items, and using back.</span>
+            </div>
+          </div>
+          -->
+        </div>
+      </section>
+
+      <!-- 5. CUSTOMISING -->
+      <section class="build-step" id="use-config" aria-labelledby="heading-config">
+        <div class="step-header">
+          <span class="step-counter">Step 05</span>
+          <h2 class="step-title" id="heading-config">Customising Shortcuts <span class="title-opt">(optional)</span></h2>
+        </div>
+        <div class="step-body">
+          <p>The device works out of the box with built-in shortcuts. To change the shortcut list, scan order, timing, on-screen messages or Mode 0 actions:</p>
+          <ol class="install-steps" aria-label="Customising steps">
+            <li><span>Open the <a href="blockly_shortcut_configurator.html">Shortcut Configurator</a> in your browser.</span></li>
+            <li><span>Choose macOS or Windows, then adjust shortcuts and timing. To edit an existing setup, load its <code>config.py</code> first.</span></li>
+            <li><span>Under <strong>On-screen Messages</strong> in Step&nbsp;2, choose whether to show “SENT!” after each selection and “ERROR” if a send fails. Experienced users often turn “SENT!” off for speed.</span></li>
+            <li><span>Click <strong>Generate config.py</strong>, then <strong>Download config.py</strong>.</span></li>
+            <li><span>Copy the file to the root of the <code>CIRCUITPY</code> drive. The device restarts with the new settings.</span></li>
+          </ol>
+          <!-- IMAGE: images/BASI_config_messages.png — screenshot, 1400 px wide, PNG -->
+          <figure class="media-figure">
+            <img class="media-img" src="images/BASI_config_messages.png" alt="The On-screen Messages panel in the Shortcut Configurator, with checkboxes for Show SENT! after each selection and Show ERROR if a key isn’t sent." width="1400" height="700" loading="lazy" decoding="async">
+            <figcaption>The On-screen Messages settings in the Shortcut Configurator.</figcaption>
+          </figure>
+
+          <div class="video-frame">
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/kUqRWDpYum8"
+              title="Using the Shortcut Configurator"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen loading="lazy"></iframe>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. WEB DISPLAY -->
+      <section class="build-step" id="use-display" aria-labelledby="heading-display">
+        <div class="step-header">
+          <span class="step-counter">Step 06</span>
+          <h2 class="step-title" id="heading-display">Web Display <span class="title-opt">(optional)</span></h2>
+        </div>
+        <div class="step-body">
+          <p>The onboard screen is small. The <a href="switch-interface-web-display.html">Web Display</a> shows the same information large and high-contrast on the computer screen, with optional text-to-speech that reads out each shortcut.</p>
+          <ol class="install-steps" aria-label="Web Display steps">
+            <li><span>Open the <a href="switch-interface-web-display.html">Web Display</a> in Chrome or Edge.</span></li>
+            <li><span>Click <strong>Connect</strong> and choose the device from the list.</span></li>
+            <li><span>Turn on text-to-speech or sound if wanted, then use the switches as normal.</span></li>
+          </ol>
+          <div class="video-frame">
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/4wwDCTYM0XI"
+              title="Web Display walkthrough"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="callout warn" role="note">
+            <span class="callout-icon" aria-hidden="true">⚠</span>
+            <span>The Web Display needs Chrome or Edge on a computer (it uses Web Serial). Text-to-speech is computer-only, and the tool has not yet been tested on mobile devices.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. TROUBLESHOOTING -->
+      <section class="build-step" id="use-help" aria-labelledby="heading-help">
+        <div class="step-header">
+          <span class="step-counter">Step 07</span>
+          <h2 class="step-title" id="heading-help">Troubleshooting</h2>
+        </div>
+        <div class="step-body">
+          <dl class="faq">
+            <div class="faq-item">
+              <dt>The shortcut seems to send but nothing happens in Blockly</dt>
+              <dd>Click into the Blockly workspace so it has keyboard focus. If only shortcuts with Ctrl or Cmd fail, the configuration is probably for the other operating system: regenerate <code>config.py</code> with the right OS selected.</dd>
+            </div>
+            <div class="faq-item">
+              <dt>Single-switch mode sends instead of scanning</dt>
+              <dd>Keep the switch held until the bar along the bottom fills and the screen turns magenta. A short press sends the current shortcut. If you let go before the bar fills, nothing is sent and scanning doesn’t start.</dd>
+            </div>
+            <div class="faq-item">
+              <dt>The screen shows “ERROR / Not sent”</dt>
+              <dd>The shortcut didn’t reach the computer. Check the USB cable is firmly connected and carries data, and that the computer is awake. In direct switch mode, also check that the action type (for example mouse or media) is supported.</dd>
+            </div>
+            <div class="faq-item">
+              <dt>The device pauses after every selection</dt>
+              <dd>That pause is the “SENT!” message. Turn it off in the <a href="blockly_shortcut_configurator.html">Shortcut Configurator</a> under <strong>On-screen Messages</strong>, then copy the new <code>config.py</code> to the device.</dd>
+            </div>
+            <div class="faq-item">
+              <dt>I’m stuck in a mode</dt>
+              <dd>Press D0 or RESET to return to mode select. In Mode 0, hold either switch for 1.5&nbsp;seconds.</dd>
+            </div>
+            <div class="faq-item">
+              <dt>I’m stuck in a submenu</dt>
+              <dd>Move to the <strong>back</strong> item (<kbd>&lt;</kbd>) at the end of the submenu and select it.</dd>
+            </div>
+            <div class="faq-item">
+              <dt>The Web Display can’t find the device</dt>
+              <dd>Use Chrome or Edge, check the USB cable carries data (not just power), and close any other page or program connected to the device.</dd>
+            </div>
+          </dl>
+          <p>Found something else? <a href="https://github.com/loretod/blockly_accessible_switch_interface/issues" target="_blank" rel="noopener">Report an issue on GitHub<span class="sr-only"> (opens in new tab)</span></a>.</p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer" role="contentinfo">
+  <div class="footer-brand">BASI<span>.</span></div>
+  <nav aria-label="Footer navigation">
+    <ul class="footer-links" role="list">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="build.html">Build</a></li>
+      <li><a href="use.html">Use It</a></li>
+      <li><a href="switch-interface-web-display.html">Display</a></li>
+      <li><a href="blockly_shortcut_configurator.html">Configure</a></li>
+      <li><a href="https://github.com/loretod/blockly_accessible_switch_interface" target="_blank" rel="noopener" aria-label="GitHub repository (opens in new tab)">GitHub ↗</a></li>
+    </ul>
+  </nav>
+  <p class="footer-copy">Open source — Creative Commons CC BY-SA 4.0</p>
+</footer>
+</body>
+</html>
