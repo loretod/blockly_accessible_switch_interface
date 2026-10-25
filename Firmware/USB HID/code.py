@@ -41,6 +41,18 @@ ONBOARD BUTTONS / EXTERNAL SWITCHES (mode selection):
 (D0 is dual-purpose: at the mode-select screen it jumps straight into
  Mode 0; from inside ANY active mode it returns to the mode-select screen.)
 
+─── MODE COLOURS ───────────────────────────────────────────
+  Each mode has its own screen colour (and a small text tag), and
+  the mode-select screen uses the same colours for its columns:
+    Direct Switch (Mode 0)  : teal
+    Single-Switch (Mode 1)  : purple, turning magenta while scanning
+    Two-Switch    (Mode 2)  : blue
+  Change them with the MODE*_COLOR settings below or in config.py.
+
+─── ON-SCREEN MESSAGES ─────────────────────────────────────
+  SHOW_SENT_MESSAGE / SHOW_ERROR_MESSAGE turn the "SENT!" and
+  "ERROR" flashes on or off (set in config.py or below).
+
 ─── SUBMENUS (Modes 1 & 2 only) ─────────────────────────────
   Any KEYCODES entry can be a SUBMENU ENTRY POINT (it has a
   "submenu" list). Selecting it sends its own keycode first
@@ -149,6 +161,44 @@ SWITCH2_SYMBOL = "TAB"     # Short TFT symbol (1-3 ASCII chars)
 # NOTE: the onboard TFT uses terminalio.FONT (a built-in bitmap font) which
 # only renders basic ASCII / Latin-1 characters. Emoji and most symbol glyphs
 # (e.g. ⏎ ⇥ → ▶) will appear blank. Stick to plain letters/numbers/punctuation.
+
+# ─── MODE COLOURS ──────────────────────────────────────────────────────────
+# Each mode has its own colour so it is obvious at a glance which mode is
+# active. The mode-select screen uses the same colours for its three
+# columns, so the colour you choose a mode by is the colour you then see.
+# Colours are 0xRRGGBB. White text is drawn on top, so keep them fairly
+# dark. Avoid bright green and red (the "sent" / "error" flashes) and
+# orange (marks submenu entries).
+MODE0_COLOR      = 0x007060   # Direct Switch — teal (SW1 pane)
+MODE0_COLOR_ALT  = 0x004A40   # Direct Switch — darker teal (SW2 pane)
+MODE1_COLOR      = 0x800080   # Single-Switch — purple (waiting)
+MODE1_SCAN_COLOR = 0xB0006A   # Single-Switch — magenta (auto-scanning)
+MODE2_COLOR      = 0x1F4FBF   # Two-Switch — blue
+
+# ─── ON-SCREEN CONFIRMATION MESSAGES ──────────────────────────────────────
+# After each keystroke / action the screen can flash a full-screen message.
+# Each message holds the screen for a moment, which can slow down a fast,
+# confident user, so both messages can be switched off independently.
+#
+#   SHOW_SENT_MESSAGE  : green "SENT!" after a successful send (all modes).
+#                        Set False for the fastest response — the screen just
+#                        updates to the next state (the onboard LED still
+#                        lights while a switch is pressed).
+#   SHOW_ERROR_MESSAGE : red "ERROR / Not sent" when a send fails (e.g. the
+#                        USB connection dropped, or a mouse/media action
+#                        isn't supported). Works whether or not
+#                        SHOW_SENT_MESSAGE is on; recommended to keep True.
+SHOW_SENT_MESSAGE  = True
+SENT_MESSAGE_SECS  = 0.1    # how long "SENT!" stays up
+SHOW_ERROR_MESSAGE = True
+ERROR_MESSAGE_SECS = 1.0    # how long "ERROR" stays up (longer, so it's noticed)
+
+# ─── SINGLE-SWITCH ON-SCREEN HINTS ────────────────────────────────────────
+# Shown in a bar along the bottom of the screen in Single-Switch Mode.
+# Up to 19 characters fit at full size; longer text is drawn smaller.
+SCAN_HINT_IDLE     = "Hold switch to scan"
+SCAN_HINT_HOLDING  = "Keep holding..."    # bar fills up while held
+SCAN_HINT_SCANNING = "Press to select"
 
 # ===============================================
 # ===== DISPLAY INITIALIZATION =====
@@ -444,8 +494,48 @@ LIGHT_GRAY = 0xAAAAAA
 WHITE      = 0xFFFFFF
 GREEN      = 0x00CC00
 RED        = 0xFF0000
+ERROR_COLOR = 0xC00000  # darker red so white text stays readable (5.9:1)
 ORANGE     = 0xFF8C00   # submenu entry-point / in-submenu visual cue
 SUBMENU_BORDER_PX = 10  # thickness (px) of the submenu-entry outline cue
+BLACK      = 0x000000
+HINT_BAR_HEIGHT = 24    # px height of the bottom hint bar (Single-Switch)
+HINT_BAR_COLOR  = 0x202020
+TAG_HEIGHT      = 14    # px height of the mode tag / SUB chips
+
+# Short text tag shown with each mode's colour, so the mode can be told
+# apart without relying on colour alone (purple vs blue can look alike
+# with some kinds of colour blindness).
+MODE_TAGS = {0: "DIR", 1: "1-SW", 2: "2-SW"}
+
+try:
+    import bitmaptools      # fast region fill for the hold-progress bar
+except ImportError:
+    bitmaptools = None
+
+# Which mode is on screen and the bottom-bar hint text (None = no bar).
+# Kept as globals so every redraw — including the ones made inside
+# select_current_item() — keeps the right colours and hint.
+ui_mode = None
+ui_hint = None
+_hint_bitmap = None     # bitmap behind the hint text, used as progress bar
+_hint_filled = 0        # columns of the hint bar already filled
+
+def set_ui(mode=None, hint=None):
+    global ui_mode, ui_hint
+    ui_mode = mode
+    ui_hint = hint
+
+def set_hint(text):
+    global ui_hint
+    ui_hint = text
+
+def panel_color(scanning=False):
+    """Main panel colour for the current mode."""
+    if ui_mode == 2:
+        return MODE2_COLOR
+    if ui_mode == 0:
+        return MODE0_COLOR
+    return MODE1_SCAN_COLOR if scanning else MODE1_COLOR
 
 splash = displayio.Group()
 display.root_group = splash
@@ -457,17 +547,94 @@ def create_background(color, x, y, width, height):
     return displayio.TileGrid(bmp, pixel_shader=pal, x=x, y=y)
 
 def clear_display():
+    global _hint_bitmap, _hint_filled
     while splash:
         splash.pop()
+    _hint_bitmap = None
+    _hint_filled = 0
 
-def draw_current_screen(flash_color=None, scanning=False):
-    """Standard two-pane display, aware of the current submenu context.
+def draw_hint_bar(y):
+    """Bottom bar with the current hint text. Its background is a 2-colour
+    bitmap so update_hint_progress() can fill it in like a progress bar."""
+    global _hint_bitmap, _hint_filled
+    bmp = displayio.Bitmap(SCREEN_WIDTH, HINT_BAR_HEIGHT, 2)
+    pal = displayio.Palette(2)
+    pal[0] = HINT_BAR_COLOR
+    pal[1] = MODE1_SCAN_COLOR
+    splash.append(displayio.TileGrid(bmp, pixel_shader=pal, x=0, y=y))
+    _hint_bitmap = bmp
+    _hint_filled = 0
 
-    Visual cues (mirroring the color + outline cue used on the configurator
-    website for submenu entries):
+    text  = ui_hint
+    scale = 2 if len(text) * 12 <= SCREEN_WIDTH - 8 else 1
+    splash.append(label.Label(
+        terminalio.FONT, text=text, color=WHITE, scale=scale,
+        anchor_point=(0.5, 0.5),
+        anchored_position=(SCREEN_WIDTH // 2, y + HINT_BAR_HEIGHT // 2)
+    ))
+
+def update_hint_progress(fraction):
+    """Fill the hint bar left-to-right (0.0-1.0) without a full redraw."""
+    global _hint_filled
+    if _hint_bitmap is None:
+        return
+    fraction = max(0.0, min(1.0, fraction))
+    target = int(fraction * SCREEN_WIDTH)
+    if target <= _hint_filled:
+        return
+    if bitmaptools is not None:
+        bitmaptools.fill_region(_hint_bitmap, _hint_filled, 0,
+                                target, HINT_BAR_HEIGHT, 1)
+    else:
+        for x in range(_hint_filled, target):
+            for y in range(HINT_BAR_HEIGHT):
+                _hint_bitmap[x, y] = 1
+    _hint_filled = target
+
+def draw_chip(text, bg, fg, x, y, width):
+    """Small solid label strip (mode tag, SUB badge)."""
+    splash.append(create_background(bg, x, y, width, TAG_HEIGHT))
+    splash.append(label.Label(
+        terminalio.FONT, text=text, color=fg, scale=1,
+        anchor_point=(0.5, 0.5),
+        anchored_position=(x + width // 2, y + TAG_HEIGHT // 2)
+    ))
+
+def append_message(bg, text, subtext=None):
+    """Full-screen message drawn on top of whatever is already on screen."""
+    splash.append(create_background(bg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
+    main_y = SCREEN_HEIGHT // 2 - (14 if subtext else 0)
+    splash.append(label.Label(
+        terminalio.FONT, text=text, color=WHITE, scale=5,
+        anchor_point=(0.5, 0.5),
+        anchored_position=(SCREEN_WIDTH // 2, main_y)
+    ))
+    if subtext:
+        splash.append(label.Label(
+            terminalio.FONT, text=subtext, color=WHITE, scale=2,
+            anchor_point=(0.5, 0.5),
+            anchored_position=(SCREEN_WIDTH // 2, main_y + 40)
+        ))
+
+def show_error_screen():
+    """Stand-alone error screen (used by Mode 0)."""
+    clear_display()
+    append_message(ERROR_COLOR, "ERROR", "Not sent")
+
+def draw_current_screen(flash_color=None, scanning=False,
+                        flash_text="SENT!", flash_subtext=None):
+    """Standard two-pane display, aware of the current mode and submenu.
+
+    Visual cues:
+      - The main panel uses the current mode's colour (MODE1_COLOR,
+        MODE1_SCAN_COLOR while scanning, or MODE2_COLOR), and a matching
+        mode tag ("1-SW" / "2-SW") sits at the top of the grey pane.
       - An item that OPENS a submenu gets a thicker ORANGE outline drawn
-        behind its normal panel color.
-      - While INSIDE a submenu, a small "SUB" badge is shown top-left.
+        behind its normal panel colour (mirrors the configurator website).
+      - While INSIDE a submenu, an orange "SUB" chip sits at the bottom of
+        the grey pane.
+      - If a hint is set (Single-Switch Mode), a bar along the bottom of the
+        screen shows it, and the panes shrink to make room.
     """
     clear_display()
 
@@ -479,46 +646,46 @@ def draw_current_screen(flash_color=None, scanning=False):
     next_symbol    = next_item.get("symbol", "?")
     is_entry_point = bool(item.get("submenu"))
 
-    right_color = SCAN_COLOR if scanning else PURPLE
+    content_h   = SCREEN_HEIGHT - HINT_BAR_HEIGHT if ui_hint else SCREEN_HEIGHT
+    right_color = panel_color(scanning)
 
     if is_entry_point:
         # Thicker colored outline behind the normal panel = "opens a submenu"
         border = SUBMENU_BORDER_PX
-        splash.append(create_background(ORANGE, LEFT_WIDTH, 0, RIGHT_WIDTH, SCREEN_HEIGHT))
+        splash.append(create_background(ORANGE, LEFT_WIDTH, 0, RIGHT_WIDTH, content_h))
         splash.append(create_background(
             right_color,
             LEFT_WIDTH + border, border,
-            RIGHT_WIDTH - 2 * border, SCREEN_HEIGHT - 2 * border
+            RIGHT_WIDTH - 2 * border, content_h - 2 * border
         ))
     else:
-        splash.append(create_background(right_color, LEFT_WIDTH, 0, RIGHT_WIDTH, SCREEN_HEIGHT))
+        splash.append(create_background(right_color, LEFT_WIDTH, 0, RIGHT_WIDTH, content_h))
 
     splash.append(label.Label(
         terminalio.FONT, text=current_symbol, color=WHITE, scale=9,
         anchor_point=(0.5, 0.5),
-        anchored_position=(LEFT_WIDTH + RIGHT_WIDTH // 2, SCREEN_HEIGHT // 2)
+        anchored_position=(LEFT_WIDTH + RIGHT_WIDTH // 2, content_h // 2)
     ))
 
-    splash.append(create_background(LIGHT_GRAY, 0, 0, LEFT_WIDTH, SCREEN_HEIGHT))
+    splash.append(create_background(LIGHT_GRAY, 0, 0, LEFT_WIDTH, content_h))
     splash.append(label.Label(
-        terminalio.FONT, text=next_symbol, color=PURPLE, scale=3,
+        terminalio.FONT, text=next_symbol, color=right_color, scale=3,
         anchor_point=(0.5, 0.5),
-        anchored_position=(LEFT_WIDTH // 2, SCREEN_HEIGHT // 2)
+        anchored_position=(LEFT_WIDTH // 2, content_h // 2)
     ))
+
+    tag = MODE_TAGS.get(ui_mode)
+    if tag:
+        draw_chip(tag, right_color, WHITE, 0, 0, LEFT_WIDTH)
 
     if in_submenu():
-        splash.append(label.Label(
-            terminalio.FONT, text="SUB", color=ORANGE, scale=1,
-            anchor_point=(0.0, 0.0), anchored_position=(2, 2)
-        ))
+        draw_chip("SUB", ORANGE, BLACK, 0, content_h - TAG_HEIGHT, LEFT_WIDTH)
+
+    if ui_hint:
+        draw_hint_bar(content_h)
 
     if flash_color is not None:
-        splash.append(create_background(flash_color, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
-        splash.append(label.Label(
-            terminalio.FONT, text="SENT!", color=WHITE, scale=5,
-            anchor_point=(0.5, 0.5),
-            anchored_position=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
-        ))
+        append_message(flash_color, flash_text, flash_subtext)
 
 def draw_direct_switch_screen(active=None, flash_color=None):
     """
@@ -530,8 +697,8 @@ def draw_direct_switch_screen(active=None, flash_color=None):
     half = SCREEN_WIDTH // 2
 
     # Left pane — Switch 1 (A1)
-    left_bg = flash_color if (active == 1 and flash_color) else TEAL
-    right_bg = flash_color if (active == 2 and flash_color) else DARK_BLUE
+    left_bg = flash_color if (active == 1 and flash_color) else MODE0_COLOR
+    right_bg = flash_color if (active == 2 and flash_color) else MODE0_COLOR_ALT
 
     splash.append(create_background(left_bg,  0,    0, half,                SCREEN_HEIGHT))
     splash.append(create_background(right_bg, half, 0, SCREEN_WIDTH - half, SCREEN_HEIGHT))
@@ -571,7 +738,10 @@ def draw_menu_screen():
 
     third = SCREEN_WIDTH // 3
 
-    splash.append(create_background(DARK_BLUE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
+    # One column per mode, in that mode's colour
+    splash.append(create_background(MODE0_COLOR, 0,         0, third,                  SCREEN_HEIGHT))
+    splash.append(create_background(MODE1_COLOR, third,     0, third,                  SCREEN_HEIGHT))
+    splash.append(create_background(MODE2_COLOR, 2 * third, 0, SCREEN_WIDTH - 2 * third, SCREEN_HEIGHT))
 
     # Dividers
     splash.append(create_background(WHITE, third - 1,     0, 2, SCREEN_HEIGHT))
@@ -584,12 +754,12 @@ def draw_menu_screen():
         anchored_position=(third // 2, SCREEN_HEIGHT // 2 - 20)
     ))
     splash.append(label.Label(
-        terminalio.FONT, text="DIR", color=LIGHT_GRAY, scale=2,
+        terminalio.FONT, text="DIR", color=WHITE, scale=2,
         anchor_point=(0.5, 0.5),
         anchored_position=(third // 2, SCREEN_HEIGHT // 2 + 10)
     ))
     splash.append(label.Label(
-        terminalio.FONT, text="direct", color=LIGHT_GRAY, scale=1,
+        terminalio.FONT, text="direct", color=WHITE, scale=1,
         anchor_point=(0.5, 0.5),
         anchored_position=(third // 2, SCREEN_HEIGHT // 2 + 28)
     ))
@@ -601,12 +771,12 @@ def draw_menu_screen():
         anchored_position=(third + third // 2, SCREEN_HEIGHT // 2 - 20)
     ))
     splash.append(label.Label(
-        terminalio.FONT, text="1-SW", color=LIGHT_GRAY, scale=2,
+        terminalio.FONT, text="1-SW", color=WHITE, scale=2,
         anchor_point=(0.5, 0.5),
         anchored_position=(third + third // 2, SCREEN_HEIGHT // 2 + 10)
     ))
     splash.append(label.Label(
-        terminalio.FONT, text="select", color=LIGHT_GRAY, scale=1,
+        terminalio.FONT, text="select", color=WHITE, scale=1,
         anchor_point=(0.5, 0.5),
         anchored_position=(third + third // 2, SCREEN_HEIGHT // 2 + 28)
     ))
@@ -618,12 +788,12 @@ def draw_menu_screen():
         anchored_position=(2 * third + third // 2, SCREEN_HEIGHT // 2 - 20)
     ))
     splash.append(label.Label(
-        terminalio.FONT, text="2-SW", color=LIGHT_GRAY, scale=2,
+        terminalio.FONT, text="2-SW", color=WHITE, scale=2,
         anchor_point=(0.5, 0.5),
         anchored_position=(2 * third + third // 2, SCREEN_HEIGHT // 2 + 10)
     ))
     splash.append(label.Label(
-        terminalio.FONT, text="nav", color=LIGHT_GRAY, scale=1,
+        terminalio.FONT, text="nav", color=WHITE, scale=1,
         anchor_point=(0.5, 0.5),
         anchored_position=(2 * third + third // 2, SCREEN_HEIGHT // 2 + 28)
     ))
@@ -653,6 +823,7 @@ def dispatch_action(action, label_str="action"):
                 print(f"EVENT: Mouse click: {label_str}")
             else:
                 print("ERROR: Mouse HID not available")
+                return False
 
         elif t == "mouse_scroll":
             m = get_mouse()
@@ -661,6 +832,7 @@ def dispatch_action(action, label_str="action"):
                 print(f"EVENT: Mouse scroll: {label_str}")
             else:
                 print("ERROR: Mouse HID not available")
+                return False
 
         elif t == "mouse_move":
             m = get_mouse()
@@ -669,6 +841,7 @@ def dispatch_action(action, label_str="action"):
                 print(f"EVENT: Mouse move: {label_str}")
             else:
                 print("ERROR: Mouse HID not available")
+                return False
 
         elif t == "media":
             cc = get_consumer()
@@ -677,6 +850,7 @@ def dispatch_action(action, label_str="action"):
                 print(f"EVENT: Media: {label_str}")
             else:
                 print("ERROR: ConsumerControl HID not available")
+                return False
 
         else:
             print(f"WARN: Unknown action type: {t}")
@@ -718,19 +892,25 @@ def press_keys(keycode_list):
     keyboard.release_all()
 
 def send_keycode(item):
-    """Press/release item's keycode combo, flash the screen. Returns True on success."""
+    """Press/release item's keycode combo, then show the SENT! / ERROR
+    message if those are switched on. Returns True on success."""
     key_name, keycode = item["label"], item["kc"]
     try:
         press_keys(keycode)
-        draw_current_screen(flash_color=GREEN)
         print(f"EVENT: Sent: {key_name}")
-        time.sleep(0.1)
-        return True
+        ok = True
     except Exception as e:
-        draw_current_screen(flash_color=RED)
         print(f"ERROR: Failed to send {key_name}: {e}")
-        time.sleep(0.1)
-        return False
+        ok = False
+
+    if ok and SHOW_SENT_MESSAGE:
+        draw_current_screen(flash_color=GREEN)
+        time.sleep(SENT_MESSAGE_SECS)
+    elif not ok and SHOW_ERROR_MESSAGE:
+        draw_current_screen(flash_color=ERROR_COLOR,
+                            flash_text="ERROR", flash_subtext="Not sent")
+        time.sleep(ERROR_MESSAGE_SECS)
+    return ok
 
 def select_current_item():
     """Handle picking whatever item is currently active:
@@ -755,9 +935,10 @@ def select_current_item():
         ok = send_keycode(item)
     else:
         # No keystroke defined (e.g. an organisational-only submenu folder)
-        draw_current_screen(flash_color=GREEN)
         print(f"EVENT: Selected: {item['label']} (no keystroke)")
-        time.sleep(0.1)
+        if SHOW_SENT_MESSAGE:
+            draw_current_screen(flash_color=GREEN, flash_text="OPEN")
+            time.sleep(SENT_MESSAGE_SECS)
         ok = True
 
     if item.get("submenu"):
@@ -792,6 +973,7 @@ def run_direct_switch_mode():
     print(f"  SW2 (A2): {SWITCH2_LABEL}")
     print(f"  Hold a switch {SWITCH_HOLD_EXIT_SECS}s, or press D0, = back to menu\n")
 
+    set_ui(0)
     last_sw1 = nav_pressed()
     last_sw2 = select_pressed()
 
@@ -833,14 +1015,18 @@ def run_direct_switch_mode():
 
                 # Released before hold threshold → fire the action for that switch
                 if pressed_now == 1:
-                    draw_direct_switch_screen(active=1, flash_color=GREEN)
-                    dispatch_action(SWITCH1_ACTION, SWITCH1_LABEL)
+                    ok = dispatch_action(SWITCH1_ACTION, SWITCH1_LABEL)
                 else:
-                    draw_direct_switch_screen(active=2, flash_color=GREEN)
-                    dispatch_action(SWITCH2_ACTION, SWITCH2_LABEL)
+                    ok = dispatch_action(SWITCH2_ACTION, SWITCH2_LABEL)
 
-                time.sleep(0.05)
-                draw_direct_switch_screen()
+                if ok and SHOW_SENT_MESSAGE:
+                    draw_direct_switch_screen(active=pressed_now, flash_color=GREEN)
+                    time.sleep(SENT_MESSAGE_SECS)
+                    draw_direct_switch_screen()
+                elif not ok and SHOW_ERROR_MESSAGE:
+                    show_error_screen()
+                    time.sleep(ERROR_MESSAGE_SECS)
+                    draw_direct_switch_screen()
                 time.sleep(DEBOUNCE_TIME)
 
             last_sw1 = nav_pressed()
@@ -874,9 +1060,13 @@ def run_single_switch_mode():
     print("  D0 = back to menu\n")
 
     reset_menu()
+    set_ui(1, SCAN_HINT_IDLE)
     state          = "IDLE"   # IDLE | PRESS_PENDING | SCANNING
     press_start    = None
     last_scan_time = None
+    holding_shown  = False    # "Keep holding..." bar currently on screen
+    scan_armed     = False    # True once the hold that started scanning
+                              # is released — only then can a press select
 
     draw_current_screen()
 
@@ -897,7 +1087,8 @@ def run_single_switch_mode():
             # ── IDLE ──────────────────────────────────────────────
             if state == "IDLE":
                 if sw:
-                    press_start = now
+                    press_start   = now
+                    holding_shown = False
                     state = "PRESS_PENDING"
 
             # ── PRESS_PENDING ──────────────────────────────────────
@@ -910,22 +1101,43 @@ def run_single_switch_mode():
                         select_current_item()
                     else:
                         print(f"DEBUG: Ambiguous release ({hold:.2f}s) — ignored")
+                        if holding_shown:
+                            set_hint(SCAN_HINT_IDLE)
+                            draw_current_screen()
                     state = "IDLE"
 
                 elif hold >= HOLD_TO_SCAN_SECS:
                     print("EVENT: Hold threshold → start scanning")
                     last_scan_time = now
+                    scan_armed = False   # switch is still held right now
                     state = "SCANNING"
+                    set_hint(SCAN_HINT_SCANNING)
                     draw_current_screen(scanning=True)
+
+                elif hold > MAX_SHORT_PRESS_SECS:
+                    # Past a short press: show the hold is being counted.
+                    # Only shown after MAX_SHORT_PRESS_SECS so quick taps
+                    # don't flicker the screen.
+                    if not holding_shown:
+                        set_hint(SCAN_HINT_HOLDING)
+                        draw_current_screen()
+                        holding_shown = True
+                    update_hint_progress(hold / HOLD_TO_SCAN_SECS)
 
             # ── SCANNING ──────────────────────────────────────────
             elif state == "SCANNING":
-                if sw:
+                if not sw:
+                    scan_armed = True
+
+                if sw and scan_armed:
                     print("EVENT: Press during scan → select")
+                    # Switch the UI back to idle first so the redraws made
+                    # inside select_current_item() already show it.
+                    state = "IDLE"
+                    set_hint(SCAN_HINT_IDLE)
                     select_current_item()
                     while select_pressed():
                         time.sleep(0.01)
-                    state = "IDLE"
                     draw_current_screen(scanning=False)
 
                 elif now - last_scan_time >= SCAN_INTERVAL_SECS:
@@ -957,6 +1169,7 @@ def run_two_switch_mode():
     print("  D0 = back to menu\n")
 
     reset_menu()
+    set_ui(2)
     last_nav_state = nav_pressed()
     last_sel_state = select_pressed()
 
