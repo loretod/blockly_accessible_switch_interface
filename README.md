@@ -64,6 +64,9 @@ This open-source approach ensures the assistive technology community can freely 
 ## No Warranty Disclaimer
 This project is provided **"as-is"** without warranties of any kind. The creator is not liable for any damages, injuries, or losses from use or misuse. You assume all responsibility for safe construction, testing, and operation. **Build and use at your own risk.**
 
+## AI Assistance Disclosure
+Portions of this project, including the CircuitPython firmware (`code.py`), the Visual Display Tool, and the Blockly Configurator, were developed with the help of Claude Code. Claude Code was used to draft and refactor code, suggest approaches, and help with debugging. All AI-generated code was reviewed, edited, and tested on the actual hardware (Adafruit Feather ESP32-S3 Reverse TFT) before being included. Design decisions, accessibility requirements, and final responsibility for the code remain with this author.
+
 ## Getting Started
 [Build instructions and video are available here](https://docs.google.com/presentation/d/e/2PACX-1vRLB-ssaZ2lQKfzIOw7MU3ilnS_D7XAcPhWdcv4CS0tsQ7e1NFE6QulaQyW4kVeWO49AM5KeUvafYBN/pub?start=false&loop=false&delayms=3000)
 
